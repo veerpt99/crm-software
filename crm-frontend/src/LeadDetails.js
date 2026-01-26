@@ -13,9 +13,10 @@ export default function LeadDetails() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
 
-  useEffect(() => {
-    load();
-  }, []);
+ useEffect(() => {
+  load();
+}, [load]);
+
 
   const load = async () => {
     const res = await axios.get(`${API}/leads`);
