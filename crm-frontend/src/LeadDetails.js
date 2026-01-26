@@ -15,20 +15,22 @@ export default function LeadDetails() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
 
+// eslint-disable-next-line react-hooks/exhaustive-deps
+const load = useCallback(async () => {
+  const res = await axios.get(`${API}/leads`);
+  const found = res.data.find((l) => String(l.id) === id);
+  setLead(found);
+  setEditForm(found);
+}, [id]);
+
+
+
+
+
 useEffect(() => {
   load();
 }, [load]);
 
-
-
-
-
-  const load = useCallback(async() => {
-    const res = await axios.get(`${API}/leads`);
-    const found = res.data.find((l) => String(l.id) === id);
-    setLead(found);
-    setEditForm(found);
-  });
 
   // 🔹 SAVE EDIT
   const saveEdit = async () => {
