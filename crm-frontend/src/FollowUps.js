@@ -27,9 +27,10 @@ export default function FollowUps() {
     setList(res.data);
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+ useEffect(() => {
+  load();
+}, [load]);
+
 
   const submit = async () => {
     await axios.post(`${API}/add-followup`, {

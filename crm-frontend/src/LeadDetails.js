@@ -18,6 +18,7 @@ export default function LeadDetails() {
 }, [load]);
 
 
+
   const load = async () => {
     const res = await axios.get(`${API}/leads`);
     const found = res.data.find((l) => String(l.id) === id);
