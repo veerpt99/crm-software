@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API = "http://localhost:5000";
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
 
 function Interview() {
   const [interviews, setInterviews] = useState([]);
@@ -22,9 +23,10 @@ function Interview() {
     status: "Scheduled",
   });
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+ useEffect(() => {
+  fetchAll();
+}, [fetchAll]);
+
 
   const fetchAll = async () => {
     const [candRes, jobRes, intRes] = await Promise.all([
@@ -42,8 +44,9 @@ function Interview() {
     const { name, value } = e.target;
 
     if (name === "candidate_id") {
-      const candidate = candidates.find((c) => c.id == value);
-      const job = jobs.find((j) => j.id == candidate?.job_id);
+      const candidate = candidates.find((c) => c.id === Number(value));
+const job = jobs.find((j) => j.id === candidate?.job_id);
+
       setSelectedJobTitle(job?.title || "");
       setForm({ ...form, [name]: value, recruiter_name: job?.recruiter_name || "" });
       return;
