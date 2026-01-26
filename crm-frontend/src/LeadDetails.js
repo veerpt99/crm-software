@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+
+
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -13,18 +15,20 @@ export default function LeadDetails() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
 
- useEffect(() => {
+useEffect(() => {
   load();
 }, [load]);
 
 
 
-  const load = async () => {
+
+
+  const load = useCallback(async() => {
     const res = await axios.get(`${API}/leads`);
     const found = res.data.find((l) => String(l.id) === id);
     setLead(found);
     setEditForm(found);
-  };
+  });
 
   // 🔹 SAVE EDIT
   const saveEdit = async () => {

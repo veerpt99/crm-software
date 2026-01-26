@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+
 import axios from "axios";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
@@ -23,23 +24,25 @@ function Interview() {
     status: "Scheduled",
   });
 
+  const fetchAll = useCallback(async () => {
+  const [candRes, jobRes, intRes] = await Promise.all([
+    axios.get(`${API}/candidates`),
+    axios.get(`${API}/jobs`),
+    axios.get(`${API}/interviews`),
+  ]);
+
+  setCandidates(candRes.data || []);
+  setJobs(jobRes.data || []);
+  setInterviews(intRes.data || []);
+}, []);
+
  useEffect(() => {
   fetchAll();
 }, [fetchAll]);
 
 
-  const fetchAll = async () => {
-    const [candRes, jobRes, intRes] = await Promise.all([
-      axios.get(`${API}/candidates`),
-      axios.get(`${API}/jobs`),
-      axios.get(`${API}/interviews`),
-    ]);
 
-    setCandidates(candRes.data || []);
-    setJobs(jobRes.data || []);
-    setInterviews(intRes.data || []);
-  };
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
 
