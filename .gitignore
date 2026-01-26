@@ -1,0 +1,6 @@
+node_modules/
+client/node_modules/
+crm-frontend/node_modules/
+
+.env
+.env.local
