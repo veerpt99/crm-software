@@ -1,7 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 
-const API = process.env.REACT_APP_API_URL;
+import API from "./api";
+
 
 
 function Profile() {
@@ -19,8 +20,9 @@ function Profile() {
 
   const updateProfile = async () => {
     if (!username) return alert("Username required");
-    if (password && password !== confirm)
-      return alert("Passwords do not match");
+    if (password && confirm && password !== confirm)
+  return alert("Passwords do not match");
+
 
     try {
       setLoading(true);
@@ -78,9 +80,7 @@ function Profile() {
       <div className="card" style={{ display: "flex", gap: 20 }}>
         <div>
           {avatar ? (
-            <img
-              src={avatar}
-              alt="avatar"
+            <iimg src={`${API}${avatar}`} alt="avatar"
               style={{
                 width: 80,
                 height: 80,
@@ -139,14 +139,16 @@ function Profile() {
 
         <input
           type="password"
-          placeholder="New Password (optional)"
+  autoComplete="new-password"
+  placeholder="New Password (optional)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         <input
-          type="password"
-          placeholder="Confirm Password"
+         type="password"
+  autoComplete="new-password"
+  placeholder="Confirm Password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
