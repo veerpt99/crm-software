@@ -1,7 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 
-const API = "http://localhost:5000";
+const API = process.env.REACT_APP_API_URL;
+
 
 function Profile() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -25,10 +26,11 @@ function Profile() {
       setLoading(true);
 
       await axios.put(`${API}/update-profile`, {
-        id: storedUser.id,
-        username,
-        password: password || null,
-      });
+  id: storedUser.id,
+  username,
+  ...(password ? { password } : {}),
+});
+
 
       const updatedUser = { ...storedUser, username };
       localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -77,7 +79,7 @@ function Profile() {
         <div>
           {avatar ? (
             <img
-              src={`${API}${avatar}`}
+              src={avatar}
               alt="avatar"
               style={{
                 width: 80,
