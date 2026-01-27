@@ -4,3 +4,6 @@ crm-frontend/node_modules/
 
 .env
 .env.local
+
+crm.db
+*.sqbpro
