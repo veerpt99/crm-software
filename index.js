@@ -270,9 +270,10 @@ app.post("/upload-avatar", upload.single("avatar"), (req, res) => {
       }
 
       res.json({
-        message: "Avatar uploaded successfully",
-        avatar: avatarPath,
-      });
+  message: "Avatar uploaded successfully",
+  avatar: `${req.protocol}://${req.get("host")}${avatarPath}`,
+});
+
     }
   );
 });
