@@ -5,28 +5,27 @@ import "./layout.css";
 
 import API from "./api";
 
+function Layout() {
+  // ✅ FIXED USER STATE (CLEAN & SAFE)
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user"))
+  );
 
-function Layout() {const [user, setUser] = useState(
- setUser(JSON.parse(localStorage.getItem("user") || "null"))
+  // ✅ KEEP USER IN SYNC WITH LOCALSTORAGE (AVATAR FIX)
+  useEffect(() => {
+    const syncUser = () => {
+      setUser(JSON.parse(localStorage.getItem("user")));
+    };
 
-);
-
-useEffect(() => {
-  const syncUser = () => {
-    setUser(JSON.parse(localStorage.getItem("user")));
-  };
-
-  window.addEventListener("storage", syncUser);
-  return () => window.removeEventListener("storage", syncUser);
-}, []);
+    window.addEventListener("storage", syncUser);
+    return () => window.removeEventListener("storage", syncUser);
+  }, []);
 
   const location = useLocation();
   const navigate = useNavigate();
 
-
   const [openUser, setOpenUser] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
-
   const [notifications, setNotifications] = useState([]);
 
   // ================= ACTIVE SIDEBAR =================
@@ -42,25 +41,25 @@ useEffect(() => {
   // ================= FETCH NOTIFICATIONS =================
   useEffect(() => {
     fetchNotifications();
-
-    // 🔄 Auto-refresh notifications every 5 seconds
     const interval = setInterval(fetchNotifications, 5000);
-
     return () => clearInterval(interval);
   }, []);
 
   // ================= CLOSE DROPDOWNS ON OUTSIDE CLICK =================
   useEffect(() => {
     const handleClickOutside = (e) => {
-      // Check if click is outside notification wrapper
       const notifWrapper = document.querySelector(".notif-wrapper");
       const userChip = document.querySelector(".user-chip");
-      
+
       if (notifWrapper && !notifWrapper.contains(e.target)) {
         setOpenNotif(false);
       }
-      
-      if (userChip && !userChip.contains(e.target) && !document.querySelector(".user-dropdown")?.contains(e.target)) {
+
+      if (
+        userChip &&
+        !userChip.contains(e.target) &&
+        !document.querySelector(".user-dropdown")?.contains(e.target)
+      ) {
         setOpenUser(false);
       }
     };
@@ -73,7 +72,7 @@ useEffect(() => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:5000/notifications/all");
+      const res = await fetch(`${API}/notifications/all`);
       const data = await res.json();
       setNotifications(data || []);
     } catch (err) {
@@ -91,18 +90,15 @@ useEffect(() => {
   return (
     <div className="app-shell">
       <header className="topbar">
-        {/* LOGO */}
         <h1 className="logo animate-logo">ADROIT HR CRM</h1>
 
-        {/* TAGLINE */}
         <div className="topbar-tagline">
           Hire Us for Your Hiring
           <span className="tagline-glow" />
         </div>
 
-        {/* RIGHT AREA */}
         <div className="topbar-right">
-          {/* 🔔 NOTIFICATION BELL */}
+          {/* 🔔 NOTIFICATIONS */}
           <div className="notif-wrapper">
             <div
               className="notif-bell"
@@ -118,9 +114,8 @@ useEffect(() => {
               )}
             </div>
 
-            {/* 🔽 NOTIFICATION DROPDOWN */}
             {openNotif && (
-              <div 
+              <div
                 className="notif-dropdown"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -132,46 +127,20 @@ useEffect(() => {
                   notifications.map((n) => (
                     <div
                       key={n.id}
-                      className={`notif-item ${n.type === 'followup_overdue' ? 'overdue' : ''}`}
+                      className={`notif-item ${
+                        n.type === "followup_overdue" ? "overdue" : ""
+                      }`}
                       onClick={() => {
                         markAsRead(n.id);
-                        // Navigate based on notification type
-                        if (n.type === 'interview') {
-                          navigate('/interviews');
-                        } else if ((n.type === 'followup' || n.type === 'followup_overdue') && n.related_id) {
-                          navigate(`/leads/${n.related_id}`);
-                        } else if (n.type === 'followup' || n.type === 'followup_overdue') {
-                          // Fallback to leads page if no related_id
-                          navigate('/leads');
+                        if (n.type === "interview") {
+                          navigate("/interviews");
+                        } else {
+                          navigate("/leads");
                         }
                         setOpenNotif(false);
                       }}
-                      style={{ cursor: 'pointer' }}
                     >
-                      {n.type === 'interview' && (
-                        <>
-                          <strong>📅 Interview: {n.title}</strong>
-                          <div className="muted">{n.subtitle || "—"}</div>
-                          <div className="muted">⏰ {n.date_field} at {n.time_field}</div>
-                          <div className="muted-badge">Interview Scheduled</div>
-                        </>
-                      )}
-                      {n.type === 'followup' && (
-                        <>
-                          <strong>📞 Follow-up: {n.title}</strong>
-                          <div className="muted">{n.subtitle || "Pending follow-up"}</div>
-                          <div className="muted">📅 Due: {n.date_field}</div>
-                          <div className="muted-badge">Due Today</div>
-                        </>
-                      )}
-                      {n.type === 'followup_overdue' && (
-                        <>
-                          <strong>⚠️ Overdue: {n.title}</strong>
-                          <div className="muted">{n.subtitle || "Overdue follow-up"}</div>
-                          <div className="muted">📅 Was due: {n.date_field}</div>
-                          <div className="muted-badge overdue">Overdue</div>
-                        </>
-                      )}
+                      <strong>{n.title}</strong>
                     </div>
                   ))
                 )}
@@ -188,8 +157,10 @@ useEffect(() => {
             }}
           >
             {user?.avatar ? (
-             <img src={user?.avatar ? `${API}${user.avatar}` : defaultAvatar} />
-
+              <img
+                src={`${API}${user.avatar}?t=${Date.now()}`}
+                alt="avatar"
+              />
             ) : (
               <div className="avatar-fallback">
                 {user?.username?.charAt(0).toUpperCase()}
@@ -198,9 +169,8 @@ useEffect(() => {
             <span className="username">{user?.username}</span>
           </div>
 
-          {/* USER DROPDOWN */}
           {openUser && (
-            <div 
+            <div
               className="user-dropdown"
               onClick={(e) => e.stopPropagation()}
             >
@@ -232,7 +202,6 @@ useEffect(() => {
         </div>
       </header>
 
-      {/* ================= BODY ================= */}
       <div className="body">
         <aside className="sidebar">
           <Link className={isActive("/")} to="/">Dashboard</Link>
