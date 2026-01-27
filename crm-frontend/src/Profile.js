@@ -80,14 +80,17 @@ function Profile() {
       <div className="card" style={{ display: "flex", gap: 20 }}>
         <div>
           {avatar ? (
-            <iimg src={`${API}${avatar}`} alt="avatar"
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                objectFit: "cover",
-              }}
-            />
+            <img
+  src={`${API}${avatar}`}
+  alt="avatar"
+  style={{
+    width: 80,
+    height: 80,
+    borderRadius: "50%",
+    objectFit: "cover",
+  }}
+/>
+
           ) : (
             <div
               style={{
