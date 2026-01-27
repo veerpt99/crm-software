@@ -174,11 +174,8 @@ function Layout() {
             }}
           >
             {user?.avatar ? (
-              <img
-                src={`${API}${user.avatar}`}
-                alt="avatar"
-                className="avatar"
-              />
+             <img src={user?.avatar ? `${API}${user.avatar}` : defaultAvatar} />
+
             ) : (
               <div className="avatar-fallback">
                 {user?.username?.charAt(0).toUpperCase()}
