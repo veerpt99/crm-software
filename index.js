@@ -20,7 +20,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ================= DATABASE =================
-const dbPath = path.join(__dirname, "crm.db");
+const dbPath = process.env.DB_PATH || path.join(__dirname, "crm.db");
+
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error(err);
