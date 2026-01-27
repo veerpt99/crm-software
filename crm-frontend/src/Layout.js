@@ -3,12 +3,26 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "./layout.css";
 
-const API = "http://localhost:5000";
+import API from "./api";
 
-function Layout() {
+
+function Layout() {const [user, setUser] = useState(
+ setUser(JSON.parse(localStorage.getItem("user") || "null"))
+
+);
+
+useEffect(() => {
+  const syncUser = () => {
+    setUser(JSON.parse(localStorage.getItem("user")));
+  };
+
+  window.addEventListener("storage", syncUser);
+  return () => window.removeEventListener("storage", syncUser);
+}, []);
+
   const location = useLocation();
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+
 
   const [openUser, setOpenUser] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
