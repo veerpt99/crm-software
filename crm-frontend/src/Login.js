@@ -8,7 +8,11 @@ function Login() {
 
   const login = async () => {
     try{
-      const res = await axios.post("http://localhost:5000/login",{username,password});
+      const res = await axios.post(
+  "https://crm-software-production-d8f3.up.railway.app/login",
+  { username, password }
+);
+
       localStorage.setItem("user",JSON.stringify(res.data));
       window.location.href="/";
     }catch{
