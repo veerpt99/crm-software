@@ -18,6 +18,8 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.options("*", cors());
+
 
 // ================= DATABASE =================
 const dbPath = process.env.DB_PATH || path.join(__dirname, "crm.db");
@@ -867,12 +869,25 @@ app.get("/dashboard/counts", (req, res) => {
   });
 });
 
-// ================= AUTO CREATE DEFAULT USERS =================
-if (process.env.CREATE_DEFAULT_USERS === "true") {
-  setTimeout(() => {
-    setupDefaultAccounts();
-  }, 500);
-}
+// 🔥 FORCE CREATE DEFAULT USERS (ALWAYS)
+setTimeout(async () => {
+  db.run("DELETE FROM hr");
+
+  const pass1 = await bcrypt.hash("admin123", 10);
+  db.run(
+    "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
+    ["admin", pass1, "/uploads/avatar1.jpg"]
+  );
+
+  const pass2 = await bcrypt.hash("hr123", 10);
+  db.run(
+    "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
+    ["hr_manager", pass2, "/uploads/avatar2.jpg"]
+  );
+
+  console.log("🔥 Admin users FORCE recreated");
+}, 500);
+
 
 
 // ================= SERVER =================
