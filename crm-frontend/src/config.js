@@ -1,5 +1,2 @@
-// API Configuration
-// Uses environment variable if available, otherwise defaults to localhost
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
-
+const API = "https://crm-software-production-d8f3.up.railway.app";
 export default API;
