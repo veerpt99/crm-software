@@ -867,9 +867,12 @@ app.get("/dashboard/counts", (req, res) => {
 });
 
 // ================= AUTO CREATE DEFAULT USERS =================
-setTimeout(() => {
-  setupDefaultAccounts();
-}, 500);
+if (process.env.CREATE_DEFAULT_USERS === "true") {
+  setTimeout(() => {
+    setupDefaultAccounts();
+  }, 500);
+}
+
 
 // ================= SERVER =================
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
