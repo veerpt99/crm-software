@@ -15,7 +15,13 @@ const PORT = process.env.PORT || 5000;
 
 // ================= MIDDLEWARE =================
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://crm-software-tau.vercel.app",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // ================= UPLOADS FOLDER =================
@@ -150,6 +156,37 @@ db.serialize(() => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // ================= SAFE DEFAULT USERS =================
+const createDefaultUsersIfEmpty = async () => {
+  db.get("SELECT COUNT(*) as count FROM hr", async (err, row) => {
+    if (err) {
+      console.error("User count error", err);
+      return;
+    }
+
+    if (row.count === 0) {
+      console.log("⚠️ No users found. Creating default users...");
+
+      const adminPass = await bcrypt.hash("admin123", 10);
+      const hrPass = await bcrypt.hash("hr123", 10);
+
+      db.run(
+        "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
+        ["admin", adminPass, null]
+      );
+
+      db.run(
+        "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
+        ["hr_manager", hrPass, null]
+      );
+
+      console.log("✅ Default users created");
+    }
+  });
+};
+
+createDefaultUsersIfEmpty();
 
   // SAFE COLUMN ADDITIONS
   db.run("ALTER TABLE hr ADD COLUMN last_login DATETIME", (err) => {
