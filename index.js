@@ -2,56 +2,40 @@ const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
 const multer = require("multer");
-const fs = require("fs");
-const bcrypt = require("bcrypt");
 const path = require("path");
+const fs = require("fs");
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-require("dotenv").config();
-
+// ✅ INITIALIZE APP FIRST
 const app = express();
-const PORT = process.env.PORT || 5000;
 
+// ================= MIDDLEWARE =================
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(
-  cors({
-    origin: true,
-    credentials: false,
-  })
-);
 
-
-
-
-// ================= DATABASE =================
-const dbPath = process.env.DB_PATH || path.join(__dirname, "crm.db");
-
-
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) console.error(err);
-  else {
-    console.log("SQLite Connected");
-    db.run("PRAGMA foreign_keys = ON");
-  }
-});
-
-// ================= FILE UPLOAD =================
+// ================= UPLOADS FOLDER =================
 const uploadsDir = path.join(__dirname, "uploads");
-
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, uploadsDir),
-  filename: (_, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
-const upload = multer({ storage });
-
+// ✅ STATIC FILE SERVING (AFTER app INIT)
 app.use("/uploads", express.static(uploadsDir));
 
+// ================= DATABASE =================
+const db = new sqlite3.Database("./crm.db", (err) => {
+  if (err) console.error("DB error", err);
+  else console.log("SQLite Connected");
+});
+
+// ================= MULTER =================
+const storage = multer.diskStorage({
+  destination: uploadsDir,
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + "-" + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+const upload = multer({ storage });
 // ================= TABLES =================
 db.serialize(() => {
   db.run(`
