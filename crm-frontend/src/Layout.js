@@ -2,23 +2,29 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import "./layout.css";
-
 import API from "./api";
 
 function Layout() {
-  // ✅ FIXED USER STATE (CLEAN & SAFE)
+  // ✅ USER STATE (SAFE)
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user"))
   );
 
-  // ✅ KEEP USER IN SYNC WITH LOCALSTORAGE (AVATAR FIX)
+  // ✅ SYNC USER (SAME TAB + OTHER TABS)
   useEffect(() => {
     const syncUser = () => {
       setUser(JSON.parse(localStorage.getItem("user")));
     };
 
+    // other tabs
     window.addEventListener("storage", syncUser);
-    return () => window.removeEventListener("storage", syncUser);
+    // same tab (avatar fix)
+    window.addEventListener("user-updated", syncUser);
+
+    return () => {
+      window.removeEventListener("storage", syncUser);
+      window.removeEventListener("user-updated", syncUser);
+    };
   }, []);
 
   const location = useLocation();
@@ -45,7 +51,7 @@ function Layout() {
     return () => clearInterval(interval);
   }, []);
 
-  // ================= CLOSE DROPDOWNS ON OUTSIDE CLICK =================
+  // ================= CLOSE DROPDOWNS =================
   useEffect(() => {
     const handleClickOutside = (e) => {
       const notifWrapper = document.querySelector(".notif-wrapper");
@@ -66,7 +72,8 @@ function Layout() {
 
     if (openNotif || openUser) {
       document.addEventListener("click", handleClickOutside);
-      return () => document.removeEventListener("click", handleClickOutside);
+      return () =>
+        document.removeEventListener("click", handleClickOutside);
     }
   }, [openNotif, openUser]);
 
@@ -113,39 +120,6 @@ function Layout() {
                 <span className="notif-count">{unreadCount}</span>
               )}
             </div>
-
-            {openNotif && (
-              <div
-                className="notif-dropdown"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h4>🔔 Reminders & Updates</h4>
-
-                {notifications.length === 0 ? (
-                  <p className="empty">No upcoming reminders</p>
-                ) : (
-                  notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`notif-item ${
-                        n.type === "followup_overdue" ? "overdue" : ""
-                      }`}
-                      onClick={() => {
-                        markAsRead(n.id);
-                        if (n.type === "interview") {
-                          navigate("/interviews");
-                        } else {
-                          navigate("/leads");
-                        }
-                        setOpenNotif(false);
-                      }}
-                    >
-                      <strong>{n.title}</strong>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
           </div>
 
           {/* 👤 USER CHIP */}
@@ -158,7 +132,7 @@ function Layout() {
           >
             {user?.avatar ? (
               <img
-                src={`${API}${user.avatar}?t=${Date.now()}`}
+                src={`${API}${user.avatar}?v=${Date.now()}`}
                 alt="avatar"
               />
             ) : (

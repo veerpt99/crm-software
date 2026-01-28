@@ -34,9 +34,18 @@ function Profile() {
 });
 
 
-      const updatedUser = { ...storedUser, username };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+     const updatedUser = {
+  ...storedUser,
+  avatar: res.data.user.avatar,
+};
 
+localStorage.setItem("user", JSON.stringify(updatedUser));
+setAvatar(res.data.user.avatar);
+
+// 🔥 FORCE layout refresh
+window.dispatchEvent(new Event("user-updated"));
+
+      
       alert("Profile updated ✅");
       setPassword("");
       setConfirm("");
