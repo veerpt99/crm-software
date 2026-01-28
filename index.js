@@ -4,9 +4,13 @@ const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const bcrypt = require("bcrypt");
+
 
 // ✅ INITIALIZE APP FIRST
 const app = express();
+
+const PORT = process.env.PORT || 5000;
 
 // ================= MIDDLEWARE =================
 app.use(cors());
@@ -853,25 +857,6 @@ app.get("/dashboard/counts", (req, res) => {
     );
   });
 });
-
-// 🔥 FORCE CREATE DEFAULT USERS (ALWAYS)
-setTimeout(async () => {
-  db.run("DELETE FROM hr");
-
-  const pass1 = await bcrypt.hash("admin123", 10);
-  db.run(
-    "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
-    ["admin", pass1, "/uploads/avatar1.jpg"]
-  );
-
-  const pass2 = await bcrypt.hash("hr123", 10);
-  db.run(
-    "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
-    ["hr_manager", pass2, "/uploads/avatar2.jpg"]
-  );
-
-  console.log("🔥 Admin users FORCE recreated");
-}, 500);
 
 
 
