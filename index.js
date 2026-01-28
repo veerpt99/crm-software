@@ -5,6 +5,9 @@ const multer = require("multer");
 const fs = require("fs");
 const bcrypt = require("bcrypt");
 const path = require("path");
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 require("dotenv").config();
 
 const app = express();
@@ -18,7 +21,7 @@ app.use(
     credentials: false,
   })
 );
-app.use("/uploads", express.static("uploads"));
+
 
 
 
@@ -243,39 +246,31 @@ app.post("/login", (req, res) => {
 
 
 /// ================= AVATAR UPLOAD =================
+// ================= AVATAR UPLOAD =================
 app.post("/upload-avatar", upload.single("avatar"), (req, res) => {
-  console.log("FILE:", req.file);
-  console.log("BODY:", req.body);
-
   const { id } = req.body;
 
   if (!req.file || !id) {
     return res.status(400).json({ message: "Missing file or user id" });
   }
 
-  // Store relative path (important for prod)
   const avatarPath = `/uploads/${req.file.filename}`;
 
   db.run(
-    "UPDATE hr SET avatar = ? WHERE id = ?",
+    "UPDATE hr SET avatar=? WHERE id=?",
     [avatarPath, id],
     function (err) {
       if (err) {
-        console.error("AVATAR UPLOAD ERROR:", err);
         return res.status(500).json({ message: "Avatar upload failed" });
       }
 
-      // ✅ Send back user object (frontend relies on this)
-      return res.json({
-        message: "Avatar uploaded successfully",
-        user: {
-          id,
-          avatar: avatarPath,
-        },
+      res.json({
+        avatar: avatarPath
       });
     }
   );
 });
+
 
 
 // ================= PROFILE =================

@@ -132,7 +132,7 @@ function Layout() {
           >
             {user?.avatar ? (
               <img
-                src={`${API}${user.avatar}?v=${Date.now()}`}
+                src={`${API}${user.avatar}?t=${Date.now()}`}
                 alt="avatar"
               />
             ) : (
