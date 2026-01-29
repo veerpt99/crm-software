@@ -149,9 +149,10 @@ function Layout() {
           >
             {user?.avatar ? (
               <img
-                src={`${api.defaults.baseURL}${user.avatar}?t=${Date.now()}`}
-                alt="avatar"
-              />
+  src={`${API}/uploads/${user.avatar}?t=${Date.now()}`}
+  alt="avatar"
+/>
+
             ) : (
               <div className="avatar-fallback">
                 {user?.username?.charAt(0).toUpperCase()}

@@ -37,7 +37,8 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // ✅ STATIC FILE SERVING (AFTER app INIT)
-app.use("/uploads", express.static(uploadsDir));
+app.use("/uploads", express.static("uploads"));
+
 
 // ================= DATABASE =================
 const db = new sqlite3.Database("./crm.db", (err) => {
@@ -204,16 +205,7 @@ const createDefaultUsersIfEmpty = async () => {
 
 createDefaultUsersIfEmpty();
 
-  // SAFE COLUMN ADDITIONS
-
-
-  db.run("ALTER TABLE jobs ADD COLUMN recruiter_name TEXT", (err) => {
-    if (err && !err.message.includes("duplicate")) console.error(err.message);
-  });
-
-  db.run("ALTER TABLE interviews ADD COLUMN recruiter_name TEXT", (err) => {
-    if (err && !err.message.includes("duplicate")) console.error(err.message);
-  });
+ 
 });
 
 // ================= REGISTER =================
@@ -266,31 +258,29 @@ app.post("/login", (req, res) => {
 });
 
 
-/// ================= AVATAR UPLOAD =================
 // ================= AVATAR UPLOAD =================
 app.post("/upload-avatar", upload.single("avatar"), (req, res) => {
   const { id } = req.body;
 
-  if (!req.file || !id) {
-    return res.status(400).json({ message: "Missing file or user id" });
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
   }
 
-  const avatarPath = `/uploads/${req.file.filename}`;
+  const avatar = req.file.filename; // ✅ ONLY filename
 
   db.run(
-    "UPDATE hr SET avatar=? WHERE id=?",
-    [avatarPath, id],
+    "UPDATE users SET avatar = ? WHERE id = ?",
+    [avatar, id],
     function (err) {
       if (err) {
-        return res.status(500).json({ message: "Avatar upload failed" });
+        return res.status(500).json({ message: "DB error" });
       }
 
-      res.json({
-        avatar: avatarPath
-      });
+      res.json({ avatar }); // ✅ NOT /uploads/avatar.jpg
     }
   );
 });
+
 
 
 

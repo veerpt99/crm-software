@@ -1,5 +1,6 @@
 import { useState } from "react";
-import api from "./api";
+import axios from "axios";
+import API from "./api";
 
 function Profile() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -22,21 +23,18 @@ function Profile() {
     try {
       setLoading(true);
 
-      await api.put("/update-profile", {
+      const res = await axios.put(`${API}/update-profile`, {
         id: storedUser.id,
         username,
         ...(password ? { password } : {}),
       });
 
-      // ✅ UPDATE LOCAL USER (NO AVATAR CHANGE HERE)
       const updatedUser = {
         ...storedUser,
         username,
       };
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      // 🔥 FORCE LAYOUT REFRESH
       window.dispatchEvent(new Event("user-updated"));
 
       alert("Profile updated ✅");
@@ -59,17 +57,17 @@ function Profile() {
       fd.append("avatar", file);
       fd.append("id", storedUser.id);
 
-      const res = await api.post("/upload-avatar", fd);
+      const res = await axios.post(`${API}/upload-avatar`, fd);
 
       const updatedUser = {
         ...storedUser,
-        avatar: res.data.avatar,
+        avatar: res.data.avatar, // ✅ filename only
       };
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setAvatar(res.data.avatar);
 
-      // 🔥 FORCE LAYOUT REFRESH
+      // 🔄 refresh topbar avatar
       window.dispatchEvent(new Event("user-updated"));
     } catch (err) {
       alert(err.response?.data?.message || "Avatar upload failed");
@@ -86,7 +84,7 @@ function Profile() {
         <div>
           {avatar ? (
             <img
-              src={`${api.defaults.baseURL}${avatar}?t=${Date.now()}`}
+              src={`${API}/uploads/${avatar}`}
               alt="avatar"
               style={{
                 width: 80,
