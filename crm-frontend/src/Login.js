@@ -1,5 +1,6 @@
 import { useState } from "react";
-import api from "./api";
+import axios from "axios";
+import API from "./api";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -8,20 +9,18 @@ function Login() {
 
   const login = async () => {
     setError("");
-
     try {
-      const res = await api.post("/login", {
+      const res = await axios.post(`${API}/login`, {
         username,
         password,
       });
 
-      if (res.data?.success) {
-        // ✅ STORE ONLY USER OBJECT
+      // ✅ IMPORTANT FIX
+      if (res.data.success) {
         localStorage.setItem(
           "user",
           JSON.stringify(res.data.user)
         );
-
         window.location.href = "/";
       } else {
         setError("Invalid Username or Password");
@@ -32,7 +31,7 @@ function Login() {
   };
 
   return (
-    <div style={{ width: 300, margin: "100px auto" }}>
+    <div style={{ width: 320, margin: "100px auto" }}>
       <h2>HR Login</h2>
 
       <input
@@ -51,9 +50,7 @@ function Login() {
       <button onClick={login}>Login</button>
 
       {error && (
-        <p style={{ color: "red", marginTop: 8 }}>
-          {error}
-        </p>
+        <p style={{ color: "red", marginTop: 10 }}>{error}</p>
       )}
     </div>
   );
