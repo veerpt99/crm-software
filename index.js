@@ -260,26 +260,30 @@ app.post("/login", (req, res) => {
 
 // ================= AVATAR UPLOAD =================
 app.post("/upload-avatar", upload.single("avatar"), (req, res) => {
-  const { id } = req.body;
+  const id = Number(req.body.id);
 
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
+  if (!id || !req.file) {
+    return res.status(400).json({ message: "Missing user id or file" });
   }
 
-  const avatar = req.file.filename; // ✅ ONLY filename
+  const avatarPath = `/uploads/${req.file.filename}`;
 
   db.run(
-    "UPDATE users SET avatar = ? WHERE id = ?",
-    [avatar, id],
+    "UPDATE hr SET avatar=? WHERE id=?",
+    [avatarPath, id],
     function (err) {
       if (err) {
-        return res.status(500).json({ message: "DB error" });
+        console.error("AVATAR DB ERROR:", err);
+        return res.status(500).json({ message: "Database update failed" });
       }
 
-      res.json({ avatar }); // ✅ NOT /uploads/avatar.jpg
+      res.json({
+        avatar: avatarPath,
+      });
     }
   );
 });
+
 
 
 

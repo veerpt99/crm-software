@@ -6,27 +6,41 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const login = async () => {
+    if (!username || !password) {
+      setError("Username and password are required");
+      return;
+    }
+
     setError("");
+    setLoading(true);
+
     try {
       const res = await axios.post(`${API}/login`, {
-        username,
+        username: username.trim(),
         password,
       });
 
-      // ✅ IMPORTANT FIX
-      if (res.data.success) {
+      // ✅ BACKEND RETURNS: { success, user }
+      if (res.data?.success && res.data?.user) {
+        // 🔑 store ONLY user object
         localStorage.setItem(
           "user",
           JSON.stringify(res.data.user)
         );
+
+        // hard redirect to reset app state
         window.location.href = "/";
       } else {
-        setError("Invalid Username or Password");
+        setError("Invalid username or password");
       }
     } catch (err) {
-      setError("Invalid Username or Password");
+      console.error("LOGIN ERROR:", err);
+      setError("Invalid username or password");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,6 +52,7 @@ function Login() {
         placeholder="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        autoComplete="username"
       />
 
       <input
@@ -45,12 +60,17 @@ function Login() {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        autoComplete="current-password"
       />
 
-      <button onClick={login}>Login</button>
+      <button onClick={login} disabled={loading}>
+        {loading ? "Logging in..." : "Login"}
+      </button>
 
       {error && (
-        <p style={{ color: "red", marginTop: 10 }}>{error}</p>
+        <p style={{ color: "red", marginTop: 10 }}>
+          {error}
+        </p>
       )}
     </div>
   );

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import axios from "axios";
-import API from "./api";
+import api from "./api";
 
 function Profile() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
 
   const [username, setUsername] = useState(storedUser?.username || "");
   const [avatar, setAvatar] = useState(storedUser?.avatar || null);
-  const [lastLogin] = useState(storedUser?.last_login || null);
+  const [lastLogin] = useState(storedUser?.last_login);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -16,19 +16,18 @@ function Profile() {
   /* ================= UPDATE PROFILE ================= */
   const updateProfile = async () => {
     if (!username) return alert("Username required");
-    if (password && password !== confirm)
+    if (password && confirm && password !== confirm)
       return alert("Passwords do not match");
 
     try {
       setLoading(true);
 
-      await axios.put(`${API}/update-profile`, {
+      await api.put("/update-profile", {
         id: storedUser.id,
         username,
         ...(password ? { password } : {}),
       });
 
-      // update username locally
       const updatedUser = {
         ...storedUser,
         username,
@@ -56,33 +55,32 @@ function Profile() {
       fd.append("avatar", file);
       fd.append("id", storedUser.id);
 
-      const res = await axios.post(`${API}/upload-avatar`, fd);
+      const res = await api.post("/upload-avatar", fd);
 
       const updatedUser = {
         ...storedUser,
-        avatar: res.data.avatar, // already "/uploads/..."
+        avatar: res.data.avatar,
       };
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setAvatar(res.data.avatar);
 
-      // 🔥 force Layout refresh
       window.dispatchEvent(new Event("user-updated"));
     } catch (err) {
       alert(err.response?.data?.message || "Avatar upload failed");
     }
   };
 
+  /* ================= UI ================= */
   return (
     <div className="page profile-page">
       <h2>Profile</h2>
 
-      {/* AVATAR CARD */}
       <div className="card" style={{ display: "flex", gap: 20 }}>
         <div>
           {avatar ? (
             <img
-              src={`${API}${avatar}?t=${Date.now()}`}
+              src={`${api.defaults.baseURL}${avatar}`}
               alt="avatar"
               style={{
                 width: 80,
@@ -118,15 +116,16 @@ function Profile() {
           />
         </div>
 
-        <div>
+        <div style={{ flex: 1 }}>
           <p>
             <b>Last Login:</b>{" "}
-            {lastLogin ? new Date(lastLogin).toLocaleString() : "First login"}
+            {lastLogin
+              ? new Date(lastLogin).toLocaleString()
+              : "First login"}
           </p>
         </div>
       </div>
 
-      {/* ACCOUNT INFO */}
       <div className="card">
         <h3>Account Info</h3>
         <input
@@ -136,7 +135,6 @@ function Profile() {
         />
       </div>
 
-      {/* PASSWORD */}
       <div className="card">
         <h3>Change Password</h3>
 
