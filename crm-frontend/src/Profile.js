@@ -7,28 +7,28 @@ function Profile() {
 
   const [username, setUsername] = useState(storedUser?.username || "");
   const [avatar, setAvatar] = useState(storedUser?.avatar || null);
-  const [lastLogin] = useState(storedUser?.last_login);
+  const [lastLogin] = useState(storedUser?.last_login || null);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
   /* ================= UPDATE PROFILE ================= */
-
   const updateProfile = async () => {
     if (!username) return alert("Username required");
-    if (password && confirm && password !== confirm)
+    if (password && password !== confirm)
       return alert("Passwords do not match");
 
     try {
       setLoading(true);
 
-      const res = await axios.put(`${API}/update-profile`, {
+      await axios.put(`${API}/update-profile`, {
         id: storedUser.id,
         username,
         ...(password ? { password } : {}),
       });
 
+      // update username locally
       const updatedUser = {
         ...storedUser,
         username,
@@ -48,7 +48,6 @@ function Profile() {
   };
 
   /* ================= AVATAR UPLOAD ================= */
-
   const uploadAvatar = async (file) => {
     if (!file) return;
 
@@ -61,30 +60,29 @@ function Profile() {
 
       const updatedUser = {
         ...storedUser,
-        avatar: res.data.avatar, // ✅ filename only
+        avatar: res.data.avatar, // already "/uploads/..."
       };
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setAvatar(res.data.avatar);
 
-      // 🔄 refresh topbar avatar
+      // 🔥 force Layout refresh
       window.dispatchEvent(new Event("user-updated"));
     } catch (err) {
       alert(err.response?.data?.message || "Avatar upload failed");
     }
   };
 
-  /* ================= UI ================= */
-
   return (
     <div className="page profile-page">
       <h2>Profile</h2>
 
+      {/* AVATAR CARD */}
       <div className="card" style={{ display: "flex", gap: 20 }}>
         <div>
           {avatar ? (
             <img
-              src={`${API}/uploads/${avatar}`}
+              src={`${API}${avatar}?t=${Date.now()}`}
               alt="avatar"
               style={{
                 width: 80,
@@ -120,16 +118,15 @@ function Profile() {
           />
         </div>
 
-        <div style={{ flex: 1 }}>
+        <div>
           <p>
             <b>Last Login:</b>{" "}
-            {lastLogin
-              ? new Date(lastLogin).toLocaleString()
-              : "First login"}
+            {lastLogin ? new Date(lastLogin).toLocaleString() : "First login"}
           </p>
         </div>
       </div>
 
+      {/* ACCOUNT INFO */}
       <div className="card">
         <h3>Account Info</h3>
         <input
@@ -139,12 +136,12 @@ function Profile() {
         />
       </div>
 
+      {/* PASSWORD */}
       <div className="card">
         <h3>Change Password</h3>
 
         <input
           type="password"
-          autoComplete="new-password"
           placeholder="New Password (optional)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -152,7 +149,6 @@ function Profile() {
 
         <input
           type="password"
-          autoComplete="new-password"
           placeholder="Confirm Password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}

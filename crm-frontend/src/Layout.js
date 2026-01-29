@@ -149,10 +149,10 @@ function Layout() {
           >
             {user?.avatar ? (
               <img
-  src={`${API}/uploads/${user.avatar}?t=${Date.now()}`}
-  alt="avatar"
-/>
-
+                src={`${api.defaults.baseURL}${user.avatar}?t=${Date.now()}`}
+                alt="avatar"
+                className="avatar"
+              />
             ) : (
               <div className="avatar-fallback">
                 {user?.username?.charAt(0).toUpperCase()}
@@ -184,7 +184,7 @@ function Layout() {
                 className="logout-btn"
                 onClick={() => {
                   localStorage.removeItem("user");
-                  window.location = "/login";
+                  window.location.href = "/login";
                 }}
               >
                 🚪 Logout
