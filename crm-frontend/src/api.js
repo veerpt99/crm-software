@@ -2,9 +2,8 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL:
-    process.env.NODE_ENV === "production"
-      ? "https://crm-software-production-d8f3.up.railway.app"
-      : "http://localhost:5000",
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000",
+  withCredentials: true,
 });
 
 export default api;

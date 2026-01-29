@@ -29,7 +29,7 @@ function Layout() {
   const [openNotif, setOpenNotif] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  /* ================= SAFE BASE URL ================= */
+  /* ================= SAFE BASE URL ================== */
   const BASE_URL =
     api?.defaults?.baseURL ||
     import.meta.env.VITE_API_BASE_URL ||
