@@ -1,14 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import API from "./config";
+import api from "./api";
 
 function FollowUps({ id }) {
   const nav = useNavigate();
 
   const [list, setList] = useState([]);
 
-  // 🔧 ADDED STATES (were used but not declared)
   const [form, setForm] = useState({
     status: "Pending",
     mode: "Call",
@@ -23,9 +21,10 @@ function FollowUps({ id }) {
   const [editForm, setEditForm] = useState({});
   const [rescheduleDate, setRescheduleDate] = useState("");
 
+  /* ================= LOAD ================= */
   const load = useCallback(async () => {
     if (!id) return;
-    const res = await axios.get(`${API}/followups/${id}`);
+    const res = await api.get(`/followups/${id}`);
     setList(res.data || []);
   }, [id]);
 
@@ -33,8 +32,9 @@ function FollowUps({ id }) {
     load();
   }, [load]);
 
+  /* ================= ADD ================= */
   const submit = async () => {
-    await axios.post(`${API}/add-followup`, {
+    await api.post("/add-followup", {
       ...form,
       lead_id: id,
     });
@@ -42,7 +42,6 @@ function FollowUps({ id }) {
   };
 
   /* ================= LOGIC ================= */
-
   const today = new Date().toISOString().split("T")[0];
   const pending = list.filter((f) => f.status !== "Done");
 
@@ -53,14 +52,14 @@ function FollowUps({ id }) {
     )[0];
 
   const markDone = async (f) => {
-    await axios.post(`${API}/add-followup`, {
+    await api.post("/add-followup", {
       ...f,
       status: "Done",
       lead_id: id,
     });
 
     if (rescheduleDate) {
-      await axios.post(`${API}/add-followup`, {
+      await api.post("/add-followup", {
         lead_id: id,
         status: "Pending",
         mode: f.mode,
@@ -92,14 +91,13 @@ function FollowUps({ id }) {
   });
 
   /* ================= EDIT ================= */
-
   const startEdit = (f) => {
     setEditingId(f.id);
     setEditForm({ ...f });
   };
 
   const saveEdit = async () => {
-    await axios.post(`${API}/add-followup`, {
+    await api.post("/add-followup", {
       ...editForm,
       lead_id: id,
     });
@@ -108,17 +106,15 @@ function FollowUps({ id }) {
   };
 
   /* ================= DELETE ================= */
-
   const deleteFollowUp = async (fid) => {
     const ok = window.confirm("Are you sure you want to delete this follow-up?");
     if (!ok) return;
 
-    await axios.delete(`${API}/delete-followup/${fid}`);
+    await api.delete(`/delete-followup/${fid}`);
     load();
   };
 
   /* ================= UI ================= */
-
   return (
     <div className="page">
       <button onClick={() => nav(-1)}>⬅ Back</button>
@@ -187,7 +183,7 @@ function FollowUps({ id }) {
           <option>High</option>
         </select>
 
-        {form.status === "Pending" && (
+        {form.status !== "Done" && (
           <input
             type="date"
             value={form.next_follow_up_date}
@@ -203,16 +199,6 @@ function FollowUps({ id }) {
             value={form.last_follow_up_date}
             onChange={(e) =>
               setForm({ ...form, last_follow_up_date: e.target.value })
-            }
-          />
-        )}
-
-        {form.status === "Missed" && (
-          <input
-            type="date"
-            value={form.next_follow_up_date}
-            onChange={(e) =>
-              setForm({ ...form, next_follow_up_date: e.target.value })
             }
           />
         )}

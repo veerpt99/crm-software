@@ -483,13 +483,15 @@ select:focus {
 /* ================= USER CHIP ================= */
 .user-chip {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: center;   /* 🔥 critical */
+  gap: 8px;
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 999px;
   transition: background 0.25s ease;
+  line-height: 1;        /* 🔥 prevents vertical drift */
 }
+
 
 .user-chip:hover {
   background: rgba(255,255,255,0.08);
@@ -517,6 +519,20 @@ select:focus {
 
 .username {
   font-weight: 500;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+
+/* ================= TOPBAR AVATAR FIX ================= */
+
+.user-chip img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #6366f1;
+  display: block;
 }
 
 /* ================= DROPDOWN ================= */

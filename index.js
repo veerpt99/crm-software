@@ -17,10 +17,16 @@ const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: "https://crm-software-tau.vercel.app",
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://crm-software-tau.vercel.app",
+    ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
+
 
 app.use(express.json());
 
@@ -50,13 +56,16 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 // ================= TABLES =================
 db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS hr(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT
-    )
-  `);
+ db.run(`
+  CREATE TABLE IF NOT EXISTS hr(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT,
+    avatar TEXT,
+    last_login DATETIME
+  )
+`);
+
 
   db.run(`
     CREATE TABLE IF NOT EXISTS companies(
@@ -157,6 +166,13 @@ db.serialize(() => {
     )
   `);
 
+  app.get("/debug/users", (req, res) => {
+  db.all("SELECT id, username, avatar FROM hr", [], (err, rows) => {
+    if (err) return res.status(500).json(err);
+    res.json(rows);
+  });
+});
+
   // ================= SAFE DEFAULT USERS =================
 const createDefaultUsersIfEmpty = async () => {
   db.get("SELECT COUNT(*) as count FROM hr", async (err, row) => {
@@ -189,13 +205,7 @@ const createDefaultUsersIfEmpty = async () => {
 createDefaultUsersIfEmpty();
 
   // SAFE COLUMN ADDITIONS
-  db.run("ALTER TABLE hr ADD COLUMN last_login DATETIME", (err) => {
-    if (err && !err.message.includes("duplicate")) console.error(err.message);
-  });
 
-  db.run("ALTER TABLE hr ADD COLUMN avatar TEXT", (err) => {
-    if (err && !err.message.includes("duplicate")) console.error(err.message);
-  });
 
   db.run("ALTER TABLE jobs ADD COLUMN recruiter_name TEXT", (err) => {
     if (err && !err.message.includes("duplicate")) console.error(err.message);
@@ -228,26 +238,6 @@ app.post("/register", async (req, res) => {
 });
 
 // ================= DEFAULT ACCOUNTS (PROTECTED) =================
-const setupDefaultAccounts = async () => {
-  db.all("SELECT * FROM hr", async (_, rows) => {
-    if (!rows || rows.length === 0) {
-      const pass1 = await bcrypt.hash("admin123", 10);
-      db.run(
-        "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
-        ["admin", pass1, "/uploads/avatar1.jpg"]
-      );
-
-      const pass2 = await bcrypt.hash("hr123", 10);
-      db.run(
-        "INSERT INTO hr(username,password,avatar) VALUES(?,?,?)",
-        ["hr_manager", pass2, "/uploads/avatar2.jpg"]
-      );
-
-      console.log("✅ Default HR accounts created");
-    }
-  });
-};
-
 
 // ================= LOGIN =================
 app.post("/login", (req, res) => {
@@ -263,11 +253,15 @@ app.post("/login", (req, res) => {
     db.run("UPDATE hr SET last_login=CURRENT_TIMESTAMP WHERE id=?", [row.id]);
 
     res.json({
-      id: row.id,
-      username: row.username,
-      last_login: new Date().toISOString(),
-      avatar: row.avatar,
-    });
+  success: true,
+  user: {
+    id: row.id,
+    username: row.username,
+    avatar: row.avatar,
+    last_login: new Date().toISOString(),
+  },
+});
+
   });
 });
 

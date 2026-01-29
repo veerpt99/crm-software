@@ -1,66 +1,57 @@
 import { useEffect, useState, useCallback } from "react";
-
-
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-
-const API = "http://localhost:5000";
+import api from "./api";
 
 export default function LeadDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [lead, setLead] = useState(null);
 
-  // 🔹 Edit states
+  const [lead, setLead] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
-const load = useCallback(async () => {
-  const res = await axios.get(`${API}/leads`);
-  const found = res.data.find((l) => String(l.id) === id);
-  setLead(found);
-  setEditForm(found);
-}, [id]);
+  /* ================= LOAD ================= */
+  const load = useCallback(async () => {
+    const res = await api.get("/leads");
+    const found = res.data.find((l) => String(l.id) === id);
+    setLead(found);
+    setEditForm(found);
+  }, [id]);
 
+  useEffect(() => {
+    load();
+  }, [load]);
 
-
-
-
-useEffect(() => {
-  load();
-}, [load]);
-
-
-  // 🔹 SAVE EDIT
+  /* ================= SAVE EDIT ================= */
   const saveEdit = async () => {
     if (!editForm) return;
 
     try {
-      await axios.put(`${API}/edit-lead/${lead.id}`, editForm);
+      await api.put(`/edit-lead/${lead.id}`, editForm);
       setEditOpen(false);
       load();
     } catch (err) {
-      alert("Save failed. Backend edit API missing or error.");
+      alert("Save failed. Backend edit API error.");
       console.error(err);
     }
   };
 
-  // 🔹 DELETE LEAD
+  /* ================= DELETE ================= */
   const deleteLead = async () => {
     if (!window.confirm("Are you sure you want to delete this lead?")) return;
 
     try {
-      await axios.delete(`${API}/delete-lead/${lead.id}`);
+      await api.delete(`/delete-lead/${lead.id}`);
       navigate("/leads");
     } catch (err) {
-      alert("Delete failed. Backend delete API missing or error.");
+      alert("Delete failed. Backend delete API error.");
       console.error(err);
     }
   };
 
   if (!lead) return <div>Loading lead details...</div>;
 
+  /* ================= UI ================= */
   return (
     <div className="page">
       <button onClick={() => navigate(-1)}>⬅ Back</button>
@@ -88,7 +79,7 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* DETAILS TABLE */}
+      {/* DETAILS */}
       <table className="table" style={{ marginTop: 16 }}>
         <tbody>
           <tr><th>Company</th><td>{lead.company_name}</td></tr>
@@ -156,8 +147,8 @@ useEffect(() => {
             className="card"
             style={{
               width: 520,
-              maxHeight: "80vh",     // ✅ SCROLL FIX
-              overflowY: "auto",     // ✅ SCROLL FIX
+              maxHeight: "80vh",
+              overflowY: "auto",
             }}
           >
             <h3>Edit Lead</h3>

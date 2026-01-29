@@ -1,9 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
-
-import API from "./api";
-
-
+import api from "./api";
 
 function Profile() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -21,31 +17,28 @@ function Profile() {
   const updateProfile = async () => {
     if (!username) return alert("Username required");
     if (password && confirm && password !== confirm)
-  return alert("Passwords do not match");
-
+      return alert("Passwords do not match");
 
     try {
       setLoading(true);
 
-      await axios.put(`${API}/update-profile`, {
-  id: storedUser.id,
-  username,
-  ...(password ? { password } : {}),
-});
+      await api.put("/update-profile", {
+        id: storedUser.id,
+        username,
+        ...(password ? { password } : {}),
+      });
 
+      // ✅ UPDATE LOCAL USER (NO AVATAR CHANGE HERE)
+      const updatedUser = {
+        ...storedUser,
+        username,
+      };
 
-     const updatedUser = {
-  ...storedUser,
-  avatar: res.data.user.avatar,
-};
+      localStorage.setItem("user", JSON.stringify(updatedUser));
 
-localStorage.setItem("user", JSON.stringify(updatedUser));
-setAvatar(res.data.user.avatar);
+      // 🔥 FORCE LAYOUT REFRESH
+      window.dispatchEvent(new Event("user-updated"));
 
-// 🔥 FORCE layout refresh
-window.dispatchEvent(new Event("user-updated"));
-
-      
       alert("Profile updated ✅");
       setPassword("");
       setConfirm("");
@@ -56,7 +49,7 @@ window.dispatchEvent(new Event("user-updated"));
     }
   };
 
-  /* ================= AVATAR UPLOAD (FIXED) ================= */
+  /* ================= AVATAR UPLOAD ================= */
 
   const uploadAvatar = async (file) => {
     if (!file) return;
@@ -66,7 +59,7 @@ window.dispatchEvent(new Event("user-updated"));
       fd.append("avatar", file);
       fd.append("id", storedUser.id);
 
-      const res = await axios.post(`${API}/upload-avatar`, fd);
+      const res = await api.post("/upload-avatar", fd);
 
       const updatedUser = {
         ...storedUser,
@@ -75,6 +68,9 @@ window.dispatchEvent(new Event("user-updated"));
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setAvatar(res.data.avatar);
+
+      // 🔥 FORCE LAYOUT REFRESH
+      window.dispatchEvent(new Event("user-updated"));
     } catch (err) {
       alert(err.response?.data?.message || "Avatar upload failed");
     }
@@ -90,16 +86,15 @@ window.dispatchEvent(new Event("user-updated"));
         <div>
           {avatar ? (
             <img
-  src={`${API}${avatar}`}
-  alt="avatar"
-  style={{
-    width: 80,
-    height: 80,
-    borderRadius: "50%",
-    objectFit: "cover",
-  }}
-/>
-
+              src={`${api.defaults.baseURL}${avatar}?t=${Date.now()}`}
+              alt="avatar"
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                objectFit: "cover",
+              }}
+            />
           ) : (
             <div
               style={{
@@ -151,16 +146,16 @@ window.dispatchEvent(new Event("user-updated"));
 
         <input
           type="password"
-  autoComplete="new-password"
-  placeholder="New Password (optional)"
+          autoComplete="new-password"
+          placeholder="New Password (optional)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         <input
-         type="password"
-  autoComplete="new-password"
-  placeholder="Confirm Password"
+          type="password"
+          autoComplete="new-password"
+          placeholder="Confirm Password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />

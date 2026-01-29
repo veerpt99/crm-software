@@ -1,9 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-
-import axios from "axios";
-
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
-
+import api from "./api";
 
 function Interview() {
   const [interviews, setInterviews] = useState([]);
@@ -24,34 +20,41 @@ function Interview() {
     status: "Scheduled",
   });
 
+  /* ================= FETCH ================= */
   const fetchAll = useCallback(async () => {
-  const [candRes, jobRes, intRes] = await Promise.all([
-    axios.get(`${API}/candidates`),
-    axios.get(`${API}/jobs`),
-    axios.get(`${API}/interviews`),
-  ]);
+    try {
+      const [candRes, jobRes, intRes] = await Promise.all([
+        api.get("/candidates"),
+        api.get("/jobs"),
+        api.get("/interviews"),
+      ]);
 
-  setCandidates(candRes.data || []);
-  setJobs(jobRes.data || []);
-  setInterviews(intRes.data || []);
-}, []);
+      setCandidates(candRes.data || []);
+      setJobs(jobRes.data || []);
+      setInterviews(intRes.data || []);
+    } catch (err) {
+      console.error("Interview fetch error:", err);
+    }
+  }, []);
 
- useEffect(() => {
-  fetchAll();
-}, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
-
-
-  
+  /* ================= FORM ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     if (name === "candidate_id") {
       const candidate = candidates.find((c) => c.id === Number(value));
-const job = jobs.find((j) => j.id === candidate?.job_id);
+      const job = jobs.find((j) => j.id === candidate?.job_id);
 
       setSelectedJobTitle(job?.title || "");
-      setForm({ ...form, [name]: value, recruiter_name: job?.recruiter_name || "" });
+      setForm({
+        ...form,
+        [name]: value,
+        recruiter_name: job?.recruiter_name || "",
+      });
       return;
     }
 
@@ -59,7 +62,6 @@ const job = jobs.find((j) => j.id === candidate?.job_id);
   };
 
   /* ================= ADD / EDIT ================= */
-
   const openAdd = () => {
     resetForm();
     setModalOpen(true);
@@ -85,15 +87,19 @@ const job = jobs.find((j) => j.id === candidate?.job_id);
       return;
     }
 
-    if (editId) {
-      await axios.delete(`${API}/delete-interview/${editId}`);
+    try {
+      if (editId) {
+        await api.delete(`/delete-interview/${editId}`);
+      }
+
+      await api.post("/add-interview", form);
+
+      fetchAll();
+      resetForm();
+      setModalOpen(false);
+    } catch (err) {
+      console.error("Submit interview error:", err);
     }
-
-    await axios.post(`${API}/add-interview`, form);
-
-    fetchAll();
-    resetForm();
-    setModalOpen(false);
   };
 
   const resetForm = () => {
@@ -111,12 +117,11 @@ const job = jobs.find((j) => j.id === candidate?.job_id);
 
   const deleteInterview = async (id) => {
     if (!window.confirm("Delete this interview?")) return;
-    await axios.delete(`${API}/delete-interview/${id}`);
+    await api.delete(`/delete-interview/${id}`);
     fetchAll();
   };
 
   /* ================= UI ================= */
-
   return (
     <div className="page interview-page">
       {/* HEADER */}
@@ -129,8 +134,6 @@ const job = jobs.find((j) => j.id === candidate?.job_id);
         }}
       >
         <h2>Interviews</h2>
-
-        {/* ✅ FIXED BUTTON */}
         <button className="page-action-btn" onClick={openAdd}>
           ➕ Schedule Interview
         </button>
@@ -188,7 +191,7 @@ const job = jobs.find((j) => j.id === candidate?.job_id);
         })}
       </div>
 
-      {/* ================= MODAL ================= */}
+      {/* MODAL */}
       {modalOpen && (
         <div
           style={{

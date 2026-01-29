@@ -1,14 +1,11 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-
-const API = "http://localhost:5000";
+import api from "./api";
 
 function Jobs() {
   const [jobs, setJobs] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [openId, setOpenId] = useState(null);
 
-  // modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
 
@@ -27,16 +24,18 @@ function Jobs() {
     fetchCompanies();
   }, []);
 
+  /* ================= FETCH ================= */
   const fetchJobs = async () => {
-    const res = await axios.get(`${API}/jobs`);
+    const res = await api.get("/jobs");
     setJobs(Array.isArray(res.data) ? res.data : []);
   };
 
   const fetchCompanies = async () => {
-    const res = await axios.get(`${API}/companies`);
+    const res = await api.get("/companies");
     setCompanies(Array.isArray(res.data) ? res.data : []);
   };
 
+  /* ================= FORM ================= */
   const openAddModal = () => {
     resetForm();
     setModalOpen(true);
@@ -60,6 +59,7 @@ function Jobs() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  /* ================= SUBMIT ================= */
   const submitJob = async () => {
     if (!form.title || !form.company_id) {
       alert("Job title and company required");
@@ -67,9 +67,9 @@ function Jobs() {
     }
 
     if (editId) {
-      await axios.put(`${API}/edit-job/${editId}`, form);
+      await api.put(`/edit-job/${editId}`, form);
     } else {
-      await axios.post(`${API}/add-job`, form);
+      await api.post("/add-job", form);
     }
 
     fetchJobs();
@@ -92,13 +92,14 @@ function Jobs() {
 
   const deleteJob = async (id) => {
     if (!window.confirm("Delete this job?")) return;
-    await axios.delete(`${API}/delete-job/${id}`);
+    await api.delete(`/delete-job/${id}`);
     fetchJobs();
   };
 
   const companyName = (id) =>
     companies.find((c) => c.id === id)?.name || "—";
 
+  /* ================= UI ================= */
   return (
     <div className="page jobs-page">
       {/* HEADER */}
@@ -115,7 +116,10 @@ function Jobs() {
       </div>
 
       {/* JOB CARDS */}
-      <div className="card-list" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div
+        className="card-list"
+        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+      >
         {jobs.map((j) => {
           const isOpen = openId === j.id;
 
@@ -132,26 +136,20 @@ function Jobs() {
                 cursor: "pointer",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
                 transition: "all 0.3s ease",
-                marginBottom: 0,
                 width: "100%",
-                boxSizing: "border-box",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 8px 16px rgba(59, 130, 246, 0.12)";
-                e.currentTarget.style.borderColor = "#3b82f6";
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.backgroundColor = "#fafbfc";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06)";
-                e.currentTarget.style.borderColor = "#e5e7eb";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.backgroundColor = "#ffffff";
               }}
             >
-              <div className="card-summary" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "20px" }}>
-                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>{j.title}</h3>
-                <span className={`status ${j.status.toLowerCase()}`} style={{ paddingLeft: "0", whiteSpace: "nowrap" }}>
+              <div
+                className="card-summary"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "20px",
+                }}
+              >
+                <h3 style={{ margin: 0 }}>{j.title}</h3>
+                <span className={`status ${j.status.toLowerCase()}`}>
                   {j.status}
                 </span>
               </div>
@@ -160,51 +158,19 @@ function Jobs() {
                 <div
                   className="card-details"
                   onClick={(e) => e.stopPropagation()}
-                  style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #f3f4f6" }}
+                  style={{ marginTop: 16, borderTop: "1px solid #f3f4f6" }}
                 >
-                  <p style={{ margin: "8px 0", fontSize: "14px", color: "#4b5563" }}>🏢 <strong>{companyName(j.company_id)}</strong></p>
-                  <p style={{ margin: "8px 0", fontSize: "14px", color: "#4b5563" }}>📍 <strong>{j.location || "-"}</strong></p>
-                  <p style={{ margin: "8px 0", fontSize: "14px", color: "#4b5563" }}>🎯 <strong>{j.experience || "-"}</strong></p>
-                  <p style={{ margin: "8px 0", fontSize: "14px", color: "#4b5563" }}>💰 <strong>{j.salary || "-"}</strong></p>
-                  <p style={{ margin: "8px 0", fontSize: "14px", color: "#4b5563" }}>👤 <strong>{j.recruiter_name || "-"}</strong></p>
+                  <p>🏢 <b>{companyName(j.company_id)}</b></p>
+                  <p>📍 {j.location || "-"}</p>
+                  <p>🎯 {j.experience || "-"}</p>
+                  <p>💰 {j.salary || "-"}</p>
+                  <p>👤 {j.recruiter_name || "-"}</p>
 
-                  <div className="card-actions" style={{ marginTop: "16px", display: "flex", gap: "10px" }}>
-                    <button 
-                      onClick={() => openEditModal(j)}
-                      style={{
-                        flex: 1,
-                        padding: "8px 14px",
-                        backgroundColor: "#3b82f6",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontWeight: "500",
-                        fontSize: "13px",
-                        transition: "background-color 0.2s"
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = "#2563eb"}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = "#3b82f6"}
-                    >
-                      Edit
-                    </button>
+                  <div className="card-actions" style={{ marginTop: 16 }}>
+                    <button onClick={() => openEditModal(j)}>Edit</button>
                     <button
                       className="danger"
                       onClick={() => deleteJob(j.id)}
-                      style={{
-                        flex: 1,
-                        padding: "8px 14px",
-                        backgroundColor: "#ef4444",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontWeight: "500",
-                        fontSize: "13px",
-                        transition: "background-color 0.2s"
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = "#dc2626"}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = "#ef4444"}
                     >
                       Delete
                     </button>
@@ -216,7 +182,7 @@ function Jobs() {
         })}
       </div>
 
-      {/* ================= ADD / EDIT MODAL ================= */}
+      {/* MODAL */}
       {modalOpen && (
         <div
           style={{
@@ -229,10 +195,7 @@ function Jobs() {
             zIndex: 1000,
           }}
         >
-          <div
-            className="card"
-            style={{ width: 420, maxHeight: "80vh", overflowY: "auto" }}
-          >
+          <div className="card" style={{ width: 420 }}>
             <h3>{editId ? "Edit Job" : "Add Job"}</h3>
 
             <select

@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
-const API = "http://localhost:5000";
+import api from "./api";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -25,16 +23,15 @@ function Dashboard() {
 
     // 🔄 Auto-refresh overdue follow-ups every 5 seconds
     const interval = setInterval(fetchOverdue, 5000);
-
     return () => clearInterval(interval);
   }, []);
 
   /* ================= FETCH DASHBOARD ================= */
   const fetchDashboard = async () => {
     try {
-      const res = await axios.get(`${API}/dashboard/counts`);
+      const res = await api.get("/dashboard/counts");
 
-      console.log("📊 DASHBOARD DATA:", res.data); // 🔍 DEBUG
+      console.log("📊 DASHBOARD DATA:", res.data);
 
       setData({
         total: res.data?.total || 0,
@@ -52,7 +49,7 @@ function Dashboard() {
   /* ================= OVERDUE FOLLOWUPS ================= */
   const fetchOverdue = async () => {
     try {
-      const res = await axios.get(`${API}/followups-overdue`);
+      const res = await api.get("/followups-overdue");
       setOverdue(res.data || []);
     } catch (err) {
       console.error("Overdue followups load failed", err);
@@ -107,7 +104,12 @@ function Dashboard() {
       <div className="dashboard-grid">
         <StatCard title="Total Candidates" value={data.total} className="total" />
         <StatCard title="Applied" value={data.Applied} status="Applied" className="applied" />
-        <StatCard title="Shortlisted" value={data.Shortlisted} status="Shortlisted" className="shortlisted" />
+        <StatCard
+          title="Shortlisted"
+          value={data.Shortlisted}
+          status="Shortlisted"
+          className="shortlisted"
+        />
         <StatCard
           title="Interview Scheduled"
           value={data["Interview Scheduled"]}

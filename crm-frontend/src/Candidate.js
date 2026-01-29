@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-
-const API = "http://localhost:5000";
+import api from "./api";
 
 function Candidate() {
   const [candidates, setCandidates] = useState([]);
@@ -29,15 +27,19 @@ function Candidate() {
   }, []);
 
   const fetchAll = async () => {
-    const [cRes, compRes, jobRes] = await Promise.all([
-      axios.get(`${API}/candidates`),
-      axios.get(`${API}/companies`),
-      axios.get(`${API}/jobs`),
-    ]);
+    try {
+      const [cRes, compRes, jobRes] = await Promise.all([
+        api.get("/candidates"),
+        api.get("/companies"),
+        api.get("/jobs"),
+      ]);
 
-    setCandidates(cRes.data || []);
-    setCompanies(compRes.data || []);
-    setJobs(jobRes.data || []);
+      setCandidates(cRes.data || []);
+      setCompanies(compRes.data || []);
+      setJobs(jobRes.data || []);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
   };
 
   const openAddModal = () => {
@@ -88,27 +90,33 @@ function Candidate() {
       return;
     }
 
-    const data = new FormData();
-    Object.keys(form).forEach((k) => {
-      if (form[k] !== null) data.append(k, form[k]);
-    });
+    try {
+      if (editId) {
+        await api.put(`/update-candidate-status/${editId}`, {
+          status: form.status,
+        });
+      } else {
+        const data = new FormData();
+        Object.keys(form).forEach((k) => {
+          if (form[k] !== null) data.append(k, form[k]);
+        });
 
-    if (editId) {
-      await axios.put(`${API}/update-candidate-status/${editId}`, {
-        status: form.status,
-      });
-    } else {
-      await axios.post(`${API}/add-candidate`, data);
+        await api.post("/add-candidate", data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
+      fetchAll();
+      setModalOpen(false);
+      resetForm();
+    } catch (err) {
+      console.error("Submit error:", err);
     }
-
-    fetchAll();
-    setModalOpen(false);
-    resetForm();
   };
 
   const deleteCandidate = async (id) => {
     if (!window.confirm("Delete this candidate?")) return;
-    await axios.delete(`${API}/delete-candidate/${id}`);
+    await api.delete(`/delete-candidate/${id}`);
     fetchAll();
   };
 
@@ -146,7 +154,11 @@ function Candidate() {
             >
               <div className="card-summary">
                 <h3>{c.name}</h3>
-                <span className={`status ${c.status.toLowerCase().replace(" ", "")}`}>
+                <span
+                  className={`status ${c.status
+                    .toLowerCase()
+                    .replace(" ", "")}`}
+                >
                   {c.status}
                 </span>
               </div>
@@ -163,7 +175,7 @@ function Candidate() {
 
                   {c.cv && (
                     <a
-                      href={`${API}/uploads/${c.cv}`}
+                      href={`${api.defaults.baseURL}/uploads/${c.cv}`}
                       target="_blank"
                       rel="noreferrer"
                     >
@@ -187,7 +199,7 @@ function Candidate() {
         })}
       </div>
 
-      {/* ================= ADD / EDIT MODAL ================= */}
+      {/* ADD / EDIT MODAL */}
       {modalOpen && (
         <div
           style={{
@@ -247,7 +259,9 @@ function Candidate() {
             >
               <option value="">Select Job</option>
               {jobs
-                .filter((j) => String(j.company_id) === String(form.company_id))
+                .filter(
+                  (j) => String(j.company_id) === String(form.company_id)
+                )
                 .map((j) => (
                   <option key={j.id} value={j.id}>
                     {j.title}
@@ -268,9 +282,7 @@ function Candidate() {
               <option>Rejected</option>
             </select>
 
-            {!editId && (
-              <input type="file" onChange={handleFile} />
-            )}
+            {!editId && <input type="file" onChange={handleFile} />}
 
             <div style={{ marginTop: 12 }}>
               <button onClick={submitCandidate}>

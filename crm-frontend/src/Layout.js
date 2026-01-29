@@ -1,24 +1,20 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "./api";
 import "./layout.css";
-import API from "./api";
 
 function Layout() {
-  // ✅ USER STATE (SAFE)
+  /* ================= USER STATE ================= */
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user"))
   );
 
-  // ✅ SYNC USER (SAME TAB + OTHER TABS)
   useEffect(() => {
     const syncUser = () => {
       setUser(JSON.parse(localStorage.getItem("user")));
     };
 
-    // other tabs
     window.addEventListener("storage", syncUser);
-    // same tab (avatar fix)
     window.addEventListener("user-updated", syncUser);
 
     return () => {
@@ -28,13 +24,12 @@ function Layout() {
   }, []);
 
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [openUser, setOpenUser] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  // ================= ACTIVE SIDEBAR =================
+  /* ================= ACTIVE SIDEBAR ================= */
   const isActive = (path) => {
     if (path === "/") {
       return location.pathname === "/" ? "nav-item active" : "nav-item";
@@ -44,14 +39,30 @@ function Layout() {
       : "nav-item";
   };
 
-  // ================= FETCH NOTIFICATIONS =================
+  /* ================= FETCH NOTIFICATIONS ================= */
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // ================= CLOSE DROPDOWNS =================
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get("/notifications/all");
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error("Notification fetch failed", err);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  const markAsRead = async (id) => {
+    await api.put(`/notifications/read/${id}`);
+    fetchNotifications();
+  };
+
+  /* ================= CLOSE DROPDOWNS ================= */
   useEffect(() => {
     const handleClickOutside = (e) => {
       const notifWrapper = document.querySelector(".notif-wrapper");
@@ -77,23 +88,7 @@ function Layout() {
     }
   }, [openNotif, openUser]);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch(`${API}/notifications/all`);
-      const data = await res.json();
-      setNotifications(data || []);
-    } catch (err) {
-      console.error("Notification fetch failed", err);
-    }
-  };
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  const markAsRead = async (id) => {
-    await axios.put(`${API}/notifications/read/${id}`);
-    fetchNotifications();
-  };
-
+  /* ================= UI ================= */
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -120,6 +115,28 @@ function Layout() {
                 <span className="notif-count">{unreadCount}</span>
               )}
             </div>
+
+            {openNotif && (
+              <div
+                className="notif-dropdown"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {notifications.length === 0 && (
+                  <p className="muted">No notifications</p>
+                )}
+
+                {notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`notif-item ${n.is_read ? "" : "unread"}`}
+                    onClick={() => markAsRead(n.id)}
+                  >
+                    <b>{n.title || n.type}</b>
+                    <p>{n.subtitle || n.status}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 👤 USER CHIP */}
@@ -132,7 +149,7 @@ function Layout() {
           >
             {user?.avatar ? (
               <img
-                src={`${API}${user.avatar}?t=${Date.now()}`}
+                src={`${api.defaults.baseURL}${user.avatar}?t=${Date.now()}`}
                 alt="avatar"
               />
             ) : (

@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
-const API = "http://localhost:5000";
+import api from "./api";
 
 export default function Leads() {
   const [leads, setLeads] = useState([]);
   const navigate = useNavigate();
 
-  // 🔹 MODAL STATE
+  /* ================= MODAL ================= */
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // 🔹 FORM STATE (UNCHANGED)
+  /* ================= FORM ================= */
   const [form, setForm] = useState({
     company_name: "",
     hr_person: "",
@@ -28,8 +26,9 @@ export default function Leads() {
     lead_status: "New",
   });
 
+  /* ================= LOAD ================= */
   const loadLeads = async () => {
-    const res = await axios.get(`${API}/leads`);
+    const res = await api.get("/leads");
     setLeads(res.data || []);
   };
 
@@ -37,10 +36,14 @@ export default function Leads() {
     loadLeads();
   }, []);
 
-  // 🔹 SUBMIT (UNCHANGED)
+  /* ================= SUBMIT ================= */
   const submit = async () => {
-    if (!form.company_name) return alert("Company name required");
-    await axios.post(`${API}/add-lead`, form);
+    if (!form.company_name) {
+      alert("Company name required");
+      return;
+    }
+
+    await api.post("/add-lead", form);
 
     setForm({
       ...form,
@@ -51,11 +54,11 @@ export default function Leads() {
     loadLeads();
   };
 
-  // 🔹 CONVERT LEAD (UNCHANGED)
+  /* ================= CONVERT ================= */
   const convertLead = async (l) => {
     if (l.lead_status === "Converted") return;
 
-    await axios.post(`${API}/add-company`, {
+    await api.post("/add-company", {
       name: l.company_name,
       hr_name: l.hr_person,
       phone: l.contact_no,
@@ -83,9 +86,10 @@ export default function Leads() {
     }
   };
 
+  /* ================= UI ================= */
   return (
     <div className="page">
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <div
         style={{
           display: "flex",
@@ -101,12 +105,10 @@ export default function Leads() {
           </p>
         </div>
 
-        <button onClick={() => setShowAddModal(true)}>
-          ➕ Add Lead
-        </button>
+        <button onClick={() => setShowAddModal(true)}>➕ Add Lead</button>
       </div>
 
-      {/* ================= CARD GRID ================= */}
+      {/* GRID */}
       <div
         style={{
           display: "grid",
@@ -177,7 +179,7 @@ export default function Leads() {
         ))}
       </div>
 
-      {/* ================= ADD LEAD MODAL ================= */}
+      {/* ADD MODAL */}
       {showAddModal && (
         <div
           style={{
@@ -192,11 +194,7 @@ export default function Leads() {
         >
           <div
             className="card"
-            style={{
-              width: 520,
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
+            style={{ width: 520, maxHeight: "90vh", overflowY: "auto" }}
           >
             <h3 style={{ marginBottom: 12 }}>Add Lead</h3>
 

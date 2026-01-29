@@ -1,35 +1,60 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "./api";
 
 function Login() {
-  const [username,setUsername]=useState("");
-  const [password,setPassword]=useState("");
-  const [error,setError]=useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const login = async () => {
-    try{
-      const res = await axios.post(
-  "https://crm-software-production-d8f3.up.railway.app/login",
-  { username, password }
-);
+    setError("");
 
-      localStorage.setItem("user",JSON.stringify(res.data));
-      window.location.href="/";
-    }catch{
+    try {
+      const res = await api.post("/login", {
+        username,
+        password,
+      });
+
+      if (res.data?.success) {
+        // ✅ STORE ONLY USER OBJECT
+        localStorage.setItem(
+          "user",
+          JSON.stringify(res.data.user)
+        );
+
+        window.location.href = "/";
+      } else {
+        setError("Invalid Username or Password");
+      }
+    } catch (err) {
       setError("Invalid Username or Password");
     }
   };
 
   return (
-    <div style={{width:300,margin:"100px auto"}}>
+    <div style={{ width: 300, margin: "100px auto" }}>
       <h2>HR Login</h2>
 
-      <input placeholder="Username" value={username} onChange={e=>setUsername(e.target.value)} />
-      <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} />
+      <input
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
       <button onClick={login}>Login</button>
 
-      {error && <p style={{color:"red"}}>{error}</p>}
+      {error && (
+        <p style={{ color: "red", marginTop: 8 }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
