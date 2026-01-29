@@ -29,6 +29,12 @@ function Layout() {
   const [openNotif, setOpenNotif] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
+  /* ================= SAFE BASE URL ================= */
+  const BASE_URL =
+    api?.defaults?.baseURL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    "http://localhost:5000";
+
   /* ================= ACTIVE SIDEBAR ================= */
   const isActive = (path) => {
     if (path === "/") {
@@ -151,7 +157,7 @@ function Layout() {
           >
             {user?.avatar ? (
               <img
-                src={`${api.defaults.baseURL}${user.avatar}?t=${Date.now()}`}
+                src={`${BASE_URL}${user.avatar}?t=${Date.now()}`}
                 alt="avatar"
                 className="avatar"
               />
