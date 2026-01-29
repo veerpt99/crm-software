@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import api from "./api";
+import API from "./api";
 
 function Profile() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -16,24 +16,29 @@ function Profile() {
   /* ================= UPDATE PROFILE ================= */
   const updateProfile = async () => {
     if (!username) return alert("Username required");
-    if (password && confirm && password !== confirm)
+    if (password && password !== confirm)
       return alert("Passwords do not match");
 
     try {
       setLoading(true);
 
-      await api.put("/update-profile", {
+      const res = await axios.put(`${API}/update-profile`, {
         id: storedUser.id,
         username,
         ...(password ? { password } : {}),
       });
 
+      // ✅ MERGE USER (IMPORTANT FIX)
       const updatedUser = {
         ...storedUser,
         username,
+        avatar: res.data?.avatar ?? storedUser.avatar,
       };
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      setAvatar(updatedUser.avatar);
+
+      // refresh layout
       window.dispatchEvent(new Event("user-updated"));
 
       alert("Profile updated ✅");
@@ -55,8 +60,9 @@ function Profile() {
       fd.append("avatar", file);
       fd.append("id", storedUser.id);
 
-      const res = await api.post("/upload-avatar", fd);
+      const res = await axios.post(`${API}/upload-avatar`, fd);
 
+      // ✅ MERGE USER (CRITICAL)
       const updatedUser = {
         ...storedUser,
         avatar: res.data.avatar,
@@ -71,7 +77,6 @@ function Profile() {
     }
   };
 
-  /* ================= UI ================= */
   return (
     <div className="page profile-page">
       <h2>Profile</h2>
@@ -80,7 +85,7 @@ function Profile() {
         <div>
           {avatar ? (
             <img
-              src={`${api.defaults.baseURL}${avatar}`}
+              src={`${API}${avatar}`}
               alt="avatar"
               style={{
                 width: 80,
@@ -90,20 +95,7 @@ function Profile() {
               }}
             />
           ) : (
-            <div
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                background: "#6366f1",
-                color: "white",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 28,
-                fontWeight: 600,
-              }}
-            >
+            <div className="avatar-fallback">
               {username.charAt(0).toUpperCase()}
             </div>
           )}

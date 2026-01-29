@@ -148,17 +148,18 @@ function Layout() {
             }}
           >
             {user?.avatar ? (
-              <img
-                src={`${api.defaults.baseURL}${user.avatar}?t=${Date.now()}`}
-                alt="avatar"
-                className="avatar"
-              />
-            ) : (
-              <div className="avatar-fallback">
-                {user?.username?.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className="username">{user?.username}</span>
+  <img
+    src={`${API}${user.avatar}?t=${Date.now()}`}
+    alt="avatar"
+    className="avatar"
+  />
+) : (
+  <div className="avatar-fallback">
+    {user?.username?.charAt(0).toUpperCase()}
+  </div>
+)}
+<span className="username">{user?.username}</span>
+
           </div>
 
           {openUser && (
