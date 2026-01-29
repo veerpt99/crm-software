@@ -128,11 +128,13 @@ function Layout() {
                 {notifications.map((n) => (
                   <div
                     key={n.id}
-                    className={`notif-item ${n.is_read ? "" : "unread"}`}
+                    className={`notif-item ${
+                      n.is_read ? "read" : "unread"
+                    }`}
                     onClick={() => markAsRead(n.id)}
                   >
                     <b>{n.title || n.type}</b>
-                    <p>{n.subtitle || n.status}</p>
+                    <p className="muted">{n.subtitle || n.status}</p>
                   </div>
                 ))}
               </div>
@@ -148,18 +150,17 @@ function Layout() {
             }}
           >
             {user?.avatar ? (
-  <img
-    src={`${API}${user.avatar}?t=${Date.now()}`}
-    alt="avatar"
-    className="avatar"
-  />
-) : (
-  <div className="avatar-fallback">
-    {user?.username?.charAt(0).toUpperCase()}
-  </div>
-)}
-<span className="username">{user?.username}</span>
-
+              <img
+                src={`${api.defaults.baseURL}${user.avatar}?t=${Date.now()}`}
+                alt="avatar"
+                className="avatar"
+              />
+            ) : (
+              <div className="avatar-fallback">
+                {user?.username?.charAt(0)?.toUpperCase()}
+              </div>
+            )}
+            <span className="username">{user?.username}</span>
           </div>
 
           {openUser && (
