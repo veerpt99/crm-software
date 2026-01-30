@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "./api";
 
-function FollowUps({ id }) {
+function FollowUps() {
   const nav = useNavigate();
+  const { id } = useParams(); // ✅ FIX: read lead id from URL
 
   const [list, setList] = useState([]);
 
@@ -44,7 +45,7 @@ function FollowUps({ id }) {
 
     await api.post("/add-followup", {
       ...form,
-      lead_id: id,
+      lead_id: id, // ✅ now always defined
     });
 
     // reset form
