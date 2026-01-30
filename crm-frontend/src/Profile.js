@@ -60,7 +60,8 @@ function Profile() {
       fd.append("avatar", file);
       fd.append("id", storedUser.id);
 
-      const res = await axios.post(`${API}/upload-avatar`, fd);
+     const res = await api.post("/upload-avatar", fd);
+
 
       // ✅ MERGE USER (CRITICAL)
       const updatedUser = {
