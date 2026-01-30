@@ -24,7 +24,8 @@ function FollowUps({ id }) {
   /* ================= LOAD ================= */
   const load = useCallback(async () => {
     if (!id) return;
-    const res = await api.get(`/followups/${id}`);
+    const res = await api.get(`/followups/${id}?t=${Date.now()}`);
+
     setList(res.data || []);
   }, [id]);
 
