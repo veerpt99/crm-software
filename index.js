@@ -14,18 +14,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ================= MIDDLEWARE =================
-
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://crm-software-tau.vercel.app",
-    ],
-    credentials: true,
+    origin: "https://crm-software-tau.vercel.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
+
 
 
 app.use(express.json());
@@ -41,10 +36,12 @@ app.use("/uploads", express.static("uploads"));
 
 
 // ================= DATABASE =================
-const db = new sqlite3.Database("./crm.db", (err) => {
+const dbPath = path.join(__dirname, "crm.db");
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error("DB error", err);
   else console.log("SQLite Connected");
 });
+
 
 // ================= MULTER =================
 const storage = multer.diskStorage({
