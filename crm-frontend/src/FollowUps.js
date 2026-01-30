@@ -13,19 +13,16 @@ function FollowUps({ id }) {
     priority: "Medium",
     notes: "",
     created_by: "",
-    next_follow_up_date: "",
-    last_follow_up_date: "",
+    follow_up_date: "",
   });
 
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
-  const [rescheduleDate, setRescheduleDate] = useState("");
 
   /* ================= LOAD ================= */
   const load = useCallback(async () => {
     if (!id) return;
     const res = await api.get(`/followups/${id}?t=${Date.now()}`);
-
     setList(res.data || []);
   }, [id]);
 
@@ -34,81 +31,58 @@ function FollowUps({ id }) {
   }, [load]);
 
   /* ================= ADD ================= */
- const submit = async () => {
-  // ✅ VALIDATION (CRITICAL)
-  if (!form.notes) {
-    alert("Please add notes");
-    return;
-  }
+  const submit = async () => {
+    if (!form.notes) {
+      alert("Please add notes");
+      return;
+    }
 
-  if (form.status !== "Done" && !form.next_follow_up_date) {
-    alert("Please select next follow-up date");
-    return;
-  }
+    if (!form.follow_up_date) {
+      alert("Please select follow-up date");
+      return;
+    }
 
-  if (form.status === "Done" && !form.last_follow_up_date) {
-    alert("Please select last follow-up date");
-    return;
-  }
-
-  await api.post("/add-followup", {
-    ...form,
-    lead_id: id,
-  });
-
-  // ✅ RESET FORM (IMPORTANT)
-  setForm({
-    status: "Pending",
-    mode: "Call",
-    priority: "Medium",
-    notes: "",
-    created_by: "",
-    next_follow_up_date: "",
-    last_follow_up_date: "",
-  });
-
-  load();
-};
-
-
-  /* ================= LOGIC ================= */
-  const today = new Date().toISOString().split("T")[0];
-  const pending = list.filter((f) => f.status !== "Done");
-
-  const nextAction = pending
-    .filter((f) => f.next_follow_up_date)
-    .sort((a, b) =>
-      a.next_follow_up_date.localeCompare(b.next_follow_up_date)
-    )[0];
-
-  const markDone = async (f) => {
     await api.post("/add-followup", {
-      ...f,
-      status: "Done",
+      ...form,
       lead_id: id,
     });
 
-    if (rescheduleDate) {
-      await api.post("/add-followup", {
-        lead_id: id,
-        status: "Pending",
-        mode: f.mode,
-        priority: f.priority,
-        next_follow_up_date: rescheduleDate,
-        notes: "Auto created follow-up",
-        created_by: f.created_by,
-      });
-    }
+    // reset form
+    setForm({
+      status: "Pending",
+      mode: "Call",
+      priority: "Medium",
+      notes: "",
+      created_by: "",
+      follow_up_date: "",
+    });
 
-    setRescheduleDate("");
+    load();
+  };
+
+  /* ================= LOGIC ================= */
+  const today = new Date().toISOString().split("T")[0];
+
+  const pending = list.filter((f) => f.status === "Pending");
+
+  const nextAction = pending
+    .filter((f) => f.follow_up_date)
+    .sort((a, b) => a.follow_up_date.localeCompare(b.follow_up_date))[0];
+
+  const markDone = async (f) => {
+    await api.put(`/update-followup/${f.id}`, {
+      ...f,
+      status: "Done",
+    });
+
     setEditingId(null);
     load();
   };
 
   const isOverdue = (f) =>
-    f.next_follow_up_date &&
-    f.next_follow_up_date < today &&
-    f.status !== "Done";
+    f.status === "Pending" &&
+    f.follow_up_date &&
+    f.follow_up_date < today;
 
   const priorityStyle = (p) => ({
     color:
@@ -127,10 +101,12 @@ function FollowUps({ id }) {
   };
 
   const saveEdit = async () => {
-    await api.post("/add-followup", {
-      ...editForm,
-      lead_id: id,
-    });
+    if (!editForm.follow_up_date || !editForm.notes) {
+      alert("Date and notes required");
+      return;
+    }
+
+    await api.put(`/update-followup/${editingId}`, editForm);
     setEditingId(null);
     load();
   };
@@ -158,14 +134,8 @@ function FollowUps({ id }) {
         <div className="card" style={{ marginBottom: 24 }}>
           <h3>🔥 Next Action</h3>
           <p><b>Mode:</b> {nextAction.mode}</p>
-          <p><b>Due:</b> {nextAction.next_follow_up_date}</p>
+          <p><b>Date:</b> {nextAction.follow_up_date}</p>
           <p><b>Notes:</b> {nextAction.notes}</p>
-
-          <input
-            type="date"
-            value={rescheduleDate}
-            onChange={(e) => setRescheduleDate(e.target.value)}
-          />
 
           <button
             style={{ background: "#16a34a", marginTop: 10 }}
@@ -183,12 +153,7 @@ function FollowUps({ id }) {
         <select
           value={form.status}
           onChange={(e) =>
-            setForm({
-              ...form,
-              status: e.target.value,
-              last_follow_up_date: "",
-              next_follow_up_date: "",
-            })
+            setForm({ ...form, status: e.target.value })
           }
         >
           <option value="Pending">Pending</option>
@@ -196,49 +161,36 @@ function FollowUps({ id }) {
           <option value="Missed">Missed</option>
         </select>
 
-        <select
-          onChange={(e) => setForm({ ...form, mode: e.target.value })}
-        >
+        <select onChange={(e) => setForm({ ...form, mode: e.target.value })}>
           <option>Call</option>
           <option>Email</option>
           <option>WhatsApp</option>
           <option>LinkedIn</option>
         </select>
 
-        <select
-          onChange={(e) => setForm({ ...form, priority: e.target.value })}
-        >
+        <select onChange={(e) => setForm({ ...form, priority: e.target.value })}>
           <option>Low</option>
           <option>Medium</option>
           <option>High</option>
         </select>
 
-        {form.status !== "Done" && (
-          <input
-            type="date"
-            value={form.next_follow_up_date}
-            onChange={(e) =>
-              setForm({ ...form, next_follow_up_date: e.target.value })
-            }
-          />
-        )}
-
-        {form.status === "Done" && (
-          <input
-            type="date"
-            value={form.last_follow_up_date}
-            onChange={(e) =>
-              setForm({ ...form, last_follow_up_date: e.target.value })
-            }
-          />
-        )}
+        <input
+          type="date"
+          value={form.follow_up_date}
+          onChange={(e) =>
+            setForm({ ...form, follow_up_date: e.target.value })
+          }
+        />
 
         <input
           placeholder="Notes"
+          value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
         />
+
         <input
           placeholder="Created By"
+          value={form.created_by}
           onChange={(e) =>
             setForm({ ...form, created_by: e.target.value })
           }
@@ -274,10 +226,7 @@ function FollowUps({ id }) {
                   <select
                     value={editForm.priority}
                     onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        priority: e.target.value,
-                      })
+                      setEditForm({ ...editForm, priority: e.target.value })
                     }
                   >
                     <option>Low</option>
@@ -297,30 +246,16 @@ function FollowUps({ id }) {
                 {editingId === f.id ? (
                   <input
                     type="date"
-                    value={
-                      editForm.next_follow_up_date ||
-                      editForm.last_follow_up_date
-                    }
+                    value={editForm.follow_up_date}
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
-                        next_follow_up_date:
-                          editForm.status === "Pending"
-                            ? e.target.value
-                            : editForm.next_follow_up_date,
-                        last_follow_up_date:
-                          editForm.status === "Done"
-                            ? e.target.value
-                            : editForm.last_follow_up_date,
+                        follow_up_date: e.target.value,
                       })
                     }
                   />
                 ) : (
-                  <span>
-                    {f.status === "Pending"
-                      ? f.next_follow_up_date
-                      : f.last_follow_up_date}
-                  </span>
+                  f.follow_up_date
                 )}
               </td>
 

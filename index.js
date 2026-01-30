@@ -136,21 +136,21 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS follow_ups(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      lead_id INTEGER NOT NULL,
-      status TEXT DEFAULT 'Pending',
-      notes TEXT,
-      mode TEXT,
-      last_follow_up_date DATE,
-      next_follow_up_date DATE,
-      priority TEXT CHECK(priority IN ('Low','Medium','High')) DEFAULT 'Medium',
-      created_by TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
-    )
-  `);
+ db.run(`
+  CREATE TABLE IF NOT EXISTS follow_ups(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'Pending',
+    follow_up_date DATE NOT NULL,
+    notes TEXT NOT NULL,
+    mode TEXT,
+    priority TEXT CHECK(priority IN ('Low','Medium','High')) DEFAULT 'Medium',
+    created_by TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
+  )
+`);
+
 
   db.run(`
     CREATE TABLE IF NOT EXISTS notifications (
@@ -771,90 +771,132 @@ app.delete("/delete-lead/:id", (req, res) => {
 // ================= FOLLOW UPS =================
 app.post("/add-followup", (req, res) => {
   const {
+    id,
     lead_id,
     status,
+    follow_up_date,
     notes,
     mode,
-    last_follow_up_date,
-    next_follow_up_date,
     priority,
     created_by,
   } = req.body;
 
-  if (!lead_id || !notes) {
+  if (!lead_id || !status || !follow_up_date || !notes) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  if (id) {
+    // UPDATE
+    db.run(
+      `
+      UPDATE follow_ups SET
+        status=?,
+        follow_up_date=?,
+        notes=?,
+        mode=?,
+        priority=?,
+        created_by=?
+      WHERE id=?
+      `,
+      [
+        status,
+        follow_up_date,
+        notes,
+        mode,
+        priority || "Medium",
+        created_by,
+        id,
+      ],
+      (err) => {
+        if (err) return res.status(500).json(err);
+        res.json({ message: "Follow-up updated" });
+      }
+    );
+  } else {
+    // INSERT
+    db.run(
+      `
+      INSERT INTO follow_ups
+      (lead_id, status, follow_up_date, notes, mode, priority, created_by)
+      VALUES (?,?,?,?,?,?,?)
+      `,
+      [
+        lead_id,
+        status,
+        follow_up_date,
+        notes,
+        mode,
+        priority || "Medium",
+        created_by,
+      ],
+      (err) => {
+        if (err) return res.status(500).json(err);
+        res.json({ message: "Follow-up added" });
+      }
+    );
+  }
+});
+
+
+
+app.put("/update-followup/:id", (req, res) => {
+  const {
+    status,
+    follow_up_date,
+    notes,
+    mode,
+    priority,
+    created_by,
+  } = req.body;
+
+  if (!status || !follow_up_date || !notes) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
   db.run(
     `
-    INSERT INTO follow_ups (
-      lead_id,
-      status,
-      notes,
-      mode,
-      last_follow_up_date,
-      next_follow_up_date,
-      priority,
-      created_by,
-      created_at
-    ) VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
-    `,
-    [
-      lead_id,
-      status || "Pending",
-      notes,
-      mode || "Call",
-      last_follow_up_date || null,
-      next_follow_up_date || null,
-      priority || "Medium",
-      created_by || "",
-    ],
-    function (err) {
-      if (err) {
-        console.error("FOLLOW-UP INSERT ERROR:", err);
-        return res.status(500).json({ message: "Follow-up add failed" });
-      }
-      res.json({ message: "Follow-up added", id: this.lastID });
-    }
-  );
-});
-
-
-app.put("/update-followup/:id", (req, res) => {
-  const f = req.body;
-  db.run(
-    `
     UPDATE follow_ups SET
       status=?,
+      follow_up_date=?,
       notes=?,
       mode=?,
-      last_follow_up_date=?,
-      next_follow_up_date=?,
       priority=?,
       created_by=?
     WHERE id=?
     `,
     [
-      f.status,
-      f.notes,
-      f.mode,
-      f.last_follow_up_date,
-      f.next_follow_up_date,
-      f.priority,
-      f.created_by,
+      status,
+      follow_up_date,
+      notes,
+      mode,
+      priority || "Medium",
+      created_by,
       req.params.id,
     ],
-    () => res.json({ message: "Follow-up updated" })
+    function (err) {
+      if (err) {
+        console.error("UPDATE FOLLOWUP ERROR:", err);
+        return res.status(500).json({ message: "Update failed" });
+      }
+      res.json({ message: "Follow-up updated" });
+    }
   );
 });
 
+
 app.get("/followups/:leadId", (req, res) =>
   db.all(
-    "SELECT * FROM follow_ups WHERE lead_id=? ORDER BY created_at DESC",
+    `
+    SELECT *
+    FROM follow_ups
+    WHERE lead_id=?
+    ORDER BY follow_up_date DESC
+    `,
     [req.params.leadId],
     (_, rows) => res.json(rows || [])
   )
 );
+
 
 app.delete("/delete-followup/:id", (req, res) =>
   db.run(
@@ -864,19 +906,21 @@ app.delete("/delete-followup/:id", (req, res) =>
   )
 );
 
+
 app.get("/followups-overdue", (_, res) =>
   db.all(
     `
     SELECT f.*, l.company_name
     FROM follow_ups f
     JOIN leads l ON f.lead_id = l.id
-    WHERE f.next_follow_up_date < DATE('now')
-    AND f.status != 'Done'
+    WHERE f.follow_up_date < DATE('now')
+      AND f.status = 'Pending'
     `,
     [],
     (_, rows) => res.json(rows || [])
   )
 );
+
 
 // ================= DASHBOARD COUNTS =================
 app.get("/dashboard/counts", (req, res) => {
