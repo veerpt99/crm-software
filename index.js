@@ -506,18 +506,71 @@ app.post("/add-interview", (req, res) => {
   );
 });
 
-app.get("/notifications", (_, res) => {
+app.get("/notifications/all", (_, res) => {
   db.all(
     `
-    SELECT *
-    FROM notifications
-    WHERE notify_date <= DATE('now')
-    ORDER BY created_at DESC
+    -- 📅 Interviews tomorrow
+    SELECT 
+      i.id,
+      'interview' AS type,
+      i.interview_date AS date,
+      i.interview_time AS time,
+      'Interview Tomorrow' AS status,
+      c.name AS title,
+      j.title AS subtitle,
+      c.id AS redirect_id
+    FROM interviews i
+    JOIN candidates c ON i.candidate_id = c.id
+    LEFT JOIN jobs j ON c.job_id = j.id
+    WHERE DATE(i.interview_date) = DATE('now', '+1 day')
+
+    UNION ALL
+
+    -- ⏳ Follow-ups due today
+    SELECT 
+      f.id,
+      'followup' AS type,
+      f.next_follow_up_date AS date,
+      NULL AS time,
+      'Due Today' AS status,
+      l.company_name AS title,
+      f.notes AS subtitle,
+      l.id AS redirect_id
+    FROM follow_ups f
+    JOIN leads l ON f.lead_id = l.id
+    WHERE DATE(f.next_follow_up_date) = DATE('now')
+      AND f.status != 'Done'
+
+    UNION ALL
+
+    -- 🚨 Overdue follow-ups
+    SELECT 
+      f.id,
+      'followup_overdue' AS type,
+      f.next_follow_up_date AS date,
+      NULL AS time,
+      'Overdue' AS status,
+      l.company_name AS title,
+      f.notes AS subtitle,
+      l.id AS redirect_id
+    FROM follow_ups f
+    JOIN leads l ON f.lead_id = l.id
+    WHERE f.next_follow_up_date < DATE('now')
+      AND f.status != 'Done'
+
+    ORDER BY date ASC
     `,
     [],
-    (_, rows) => res.json(rows || [])
+    (err, rows) => {
+      if (err) {
+        console.error("NOTIFICATION ERROR:", err);
+        return res.status(500).json([]);
+      }
+      res.json(rows || []);
+    }
   );
 });
+
 
 app.put("/notifications/read/:id", (req, res) => {
   db.run(
