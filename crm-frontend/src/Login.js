@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api";
+import api from "./api";   // ✅ api.js is in src/
 
 function Login() {
   const [username, setUsername] = useState("");
