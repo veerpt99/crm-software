@@ -33,13 +33,42 @@ function FollowUps({ id }) {
   }, [load]);
 
   /* ================= ADD ================= */
-  const submit = async () => {
-    await api.post("/add-followup", {
-      ...form,
-      lead_id: id,
-    });
-    load();
-  };
+ const submit = async () => {
+  // ✅ VALIDATION (CRITICAL)
+  if (!form.notes) {
+    alert("Please add notes");
+    return;
+  }
+
+  if (form.status !== "Done" && !form.next_follow_up_date) {
+    alert("Please select next follow-up date");
+    return;
+  }
+
+  if (form.status === "Done" && !form.last_follow_up_date) {
+    alert("Please select last follow-up date");
+    return;
+  }
+
+  await api.post("/add-followup", {
+    ...form,
+    lead_id: id,
+  });
+
+  // ✅ RESET FORM (IMPORTANT)
+  setForm({
+    status: "Pending",
+    mode: "Call",
+    priority: "Medium",
+    notes: "",
+    created_by: "",
+    next_follow_up_date: "",
+    last_follow_up_date: "",
+  });
+
+  load();
+};
+
 
   /* ================= LOGIC ================= */
   const today = new Date().toISOString().split("T")[0];

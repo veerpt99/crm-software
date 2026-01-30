@@ -16,15 +16,28 @@ function Dashboard() {
   });
 
   const [overdue, setOverdue] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
 
   useEffect(() => {
-    fetchDashboard();
-    fetchOverdue();
+  fetchDashboard();
+  fetchOverdue();
+  fetchNotifications();
 
-    // 🔄 Auto-refresh overdue follow-ups every 5 seconds
-    const interval = setInterval(fetchOverdue, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const interval = setInterval(() => {
+    fetchOverdue();
+    fetchNotifications();
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, []);
+
+const notificationStyles = {
+  interview: { bg: "#f3f4f6", color: "#000000", icon: "📅" },
+  followup: { bg: "#fef9c3", color: "#92400e", icon: "⏳" },
+  followup_overdue: { bg: "#fee2e2", color: "#991b1b", icon: "🚨" },
+};
+
 
   /* ================= FETCH DASHBOARD ================= */
   const fetchDashboard = async () => {
@@ -55,6 +68,15 @@ function Dashboard() {
       console.error("Overdue followups load failed", err);
     }
   };
+
+  const fetchNotifications = async () => {
+  try {
+    const res = await api.get("/notifications/all");
+    setNotifications(res.data || []);
+  } catch (err) {
+    console.error("Notifications load failed", err);
+  }
+};
 
   /* ================= KPI CARD ================= */
   const StatCard = ({ title, value, status, className }) => (
@@ -99,6 +121,44 @@ function Dashboard() {
           <div style={{ fontSize: 12 }}>Click to view leads</div>
         </div>
       )}
+
+{notifications.length > 0 && (
+  <div style={{ marginBottom: 30 }}>
+    <h3>🔔 Notifications</h3>
+
+    {notifications.map((n) => (
+      <div
+        key={`${n.type}-${n.id}`}
+        onClick={() => {
+          if (n.type === "interview") {
+            navigate("/interviews");
+          } else {
+            navigate(`/leads/${n.redirect_id}/followups`);
+          }
+        }}
+        style={{
+          background: notificationStyles[n.type]?.bg,
+          color: notificationStyles[n.type]?.color,
+          padding: 12,
+          borderRadius: 8,
+          marginBottom: 10,
+          cursor: "pointer",
+          border: "1px solid rgba(0,0,0,0.05)",
+        }}
+      >
+        <b>
+          {notificationStyles[n.type]?.icon} {n.title}
+        </b>
+
+        <div style={{ fontSize: 13 }}>{n.subtitle}</div>
+
+        <div style={{ fontSize: 12, opacity: 0.8 }}>
+          {n.status} • {n.date}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
 
       {/* ================= KPI CARDS ================= */}
       <div className="dashboard-grid">
