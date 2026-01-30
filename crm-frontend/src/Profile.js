@@ -1,6 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
-import API from "./api";
+import api from "./api";
 
 function Profile() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -22,11 +21,12 @@ function Profile() {
     try {
       setLoading(true);
 
-      const res = await axios.put(`${API}/update-profile`, {
-        id: storedUser.id,
-        username,
-        ...(password ? { password } : {}),
-      });
+      const res = await api.put("/update-profile", {
+  id: storedUser.id,
+  username,
+  ...(password ? { password } : {}),
+});
+
 
       // ✅ MERGE USER (IMPORTANT FIX)
       const updatedUser = {
@@ -85,7 +85,8 @@ function Profile() {
         <div>
           {avatar ? (
             <img
-              src={`${API}${avatar}`}
+              src={`https://crm-software-production-d8f3.up.railway.app${avatar}`}
+
               alt="avatar"
               style={{
                 width: 80,
