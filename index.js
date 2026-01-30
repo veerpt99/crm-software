@@ -603,22 +603,57 @@ app.delete("/delete-interview/:id", (req, res) => {
   );
 });
 
-// ================= INTERVIEW NOTIFICATIONS =================
-app.get("/notifications/interviews", (_, res) => {
+// ================= NOTIFICATIONS (COMBINED) =================
+app.get("/notifications/all", (_, res) => {
   db.all(
     `
     SELECT 
       i.id,
-      i.interview_date,
-      i.interview_time,
-      i.mode,
-      c.name AS candidate,
-      j.title AS job_title
+      'interview' AS type,
+      i.interview_date AS date,
+      i.interview_time AS time,
+      'Interview Tomorrow' AS status,
+      c.name AS title,
+      j.title AS subtitle,
+      c.id AS redirect_id
     FROM interviews i
     JOIN candidates c ON i.candidate_id = c.id
     LEFT JOIN jobs j ON c.job_id = j.id
     WHERE DATE(i.interview_date) = DATE('now', '+1 day')
-    ORDER BY i.interview_time
+
+    UNION ALL
+
+    SELECT 
+      f.id,
+      'followup' AS type,
+      f.next_follow_up_date AS date,
+      NULL AS time,
+      'Due Today' AS status,
+      l.company_name AS title,
+      f.notes AS subtitle,
+      l.id AS redirect_id
+    FROM follow_ups f
+    JOIN leads l ON f.lead_id = l.id
+    WHERE DATE(f.next_follow_up_date) = DATE('now')
+      AND f.status != 'Done'
+
+    UNION ALL
+
+    SELECT 
+      f.id,
+      'followup_overdue' AS type,
+      f.next_follow_up_date AS date,
+      NULL AS time,
+      'Overdue' AS status,
+      l.company_name AS title,
+      f.notes AS subtitle,
+      l.id AS redirect_id
+    FROM follow_ups f
+    JOIN leads l ON f.lead_id = l.id
+    WHERE f.next_follow_up_date < DATE('now')
+      AND f.status != 'Done'
+
+    ORDER BY date ASC
     `,
     [],
     (err, rows) => {
@@ -631,71 +666,6 @@ app.get("/notifications/interviews", (_, res) => {
   );
 });
 
-// ================= NOTIFICATIONS - COMBINED (Interviews + Follow-ups) =================
-app.get("/notifications/all", (_, res) => {
-  db.all(
-    `
-    -- Upcoming interviews tomorrow
-    SELECT 
-      i.id,
-      'interview' AS type,
-      i.interview_date AS date_field,
-      i.interview_time AS time_field,
-      i.mode,
-      c.name AS title,
-      j.title AS subtitle,
-      'Interview Scheduled' AS status
-    FROM interviews i
-    JOIN candidates c ON i.candidate_id = c.id
-    LEFT JOIN jobs j ON c.job_id = j.id
-    WHERE DATE(i.interview_date) = DATE('now', '+1 day')
-    
-    UNION ALL
-    
-    -- Follow-ups due today
-    SELECT 
-      f.id,
-      'followup' AS type,
-      f.next_follow_up_date AS date_field,
-      NULL AS time_field,
-      f.mode,
-      l.company_name AS title,
-      f.notes AS subtitle,
-      f.status
-    FROM follow_ups f
-    JOIN leads l ON f.lead_id = l.id
-    WHERE DATE(f.next_follow_up_date) = DATE('now')
-    AND f.status != 'Done'
-    
-    UNION ALL
-    
-    -- Overdue follow-ups
-    SELECT 
-      f.id,
-      'followup_overdue' AS type,
-      f.next_follow_up_date AS date_field,
-      NULL AS time_field,
-      f.mode,
-      l.company_name AS title,
-      f.notes AS subtitle,
-      'Overdue' AS status
-    FROM follow_ups f
-    JOIN leads l ON f.lead_id = l.id
-    WHERE f.next_follow_up_date < DATE('now')
-    AND f.status != 'Done'
-    
-    ORDER BY date_field ASC
-    `,
-    [],
-    (err, rows) => {
-      if (err) {
-        console.error("COMBINED NOTIFICATION ERROR:", err);
-        return res.status(500).json([]);
-      }
-      res.json(rows || []);
-    }
-  );
-});
 
 // ================= LEADS =================
 app.post("/add-lead", (req, res) => {
@@ -800,49 +770,55 @@ app.delete("/delete-lead/:id", (req, res) => {
 
 // ================= FOLLOW UPS =================
 app.post("/add-followup", (req, res) => {
-  const f = req.body;
-  
-  // If ID exists, update; otherwise insert
-  if (f.id) {
-    db.run(
-      `
-      UPDATE follow_ups SET
-        status=?,
-        notes=?,
-        mode=?,
-        last_follow_up_date=?,
-        next_follow_up_date=?,
-        priority=?
-      WHERE id=?
-      `,
-      [
-        f.status,
-        f.notes,
-        f.mode,
-        f.last_follow_up_date,
-        f.next_follow_up_date,
-        f.priority || "Medium",
-        f.id,
-      ],
-      () => res.json({ message: "Follow-up updated" })
-    );
-  } else {
-    db.run(
-      `INSERT INTO follow_ups VALUES(NULL,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`,
-      [
-        f.lead_id,
-        f.status,
-        f.notes,
-        f.mode,
-        f.last_follow_up_date,
-        f.next_follow_up_date,
-        f.priority || "Medium",
-        f.created_by,
-      ],
-      () => res.json({ message: "Follow-up added" })
-    );
+  const {
+    lead_id,
+    status,
+    notes,
+    mode,
+    last_follow_up_date,
+    next_follow_up_date,
+    priority,
+    created_by,
+  } = req.body;
+
+  if (!lead_id || !notes) {
+    return res.status(400).json({ message: "Missing required fields" });
   }
+
+  db.run(
+    `
+    INSERT INTO follow_ups (
+      lead_id,
+      status,
+      notes,
+      mode,
+      last_follow_up_date,
+      next_follow_up_date,
+      priority,
+      created_by,
+      created_at
+    ) VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+    `,
+    [
+      lead_id,
+      status || "Pending",
+      notes,
+      mode || "Call",
+      last_follow_up_date || null,
+      next_follow_up_date || null,
+      priority || "Medium",
+      created_by || "",
+    ],
+    function (err) {
+      if (err) {
+        console.error("FOLLOW-UP INSERT ERROR:", err);
+        return res.status(500).json({ message: "Follow-up add failed" });
+      }
+      res.json({ message: "Follow-up added", id: this.lastID });
+    }
+  );
 });
+
 
 app.put("/update-followup/:id", (req, res) => {
   const f = req.body;
