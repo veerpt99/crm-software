@@ -1,11 +1,13 @@
 
 const express = require("express");
+const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const bcrypt = require("bcrypt");
+const pg = require("./db"); // ✅ ADD THIS
 
 
 // ✅ INITIALIZE APP FIRST
@@ -24,6 +26,20 @@ app.use(
 
 
 app.use(express.json());
+
+// ================= POSTGRES TEST (TEMP) =================
+app.get("/pg-test", async (req, res) => {
+  try {
+    const result = await pg.query("SELECT NOW()");
+    res.json({
+      postgres_time: result.rows[0],
+    });
+  } catch (err) {
+    console.error("Postgres test failed:", err);
+    res.status(500).json({ error: "Postgres not working" });
+  }
+});
+
 
 // ================= UPLOADS FOLDER =================
 const uploadsDir = path.join(__dirname, "uploads");
