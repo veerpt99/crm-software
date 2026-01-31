@@ -36,3 +36,6 @@ module.exports = {
   pg,
   isPostgres,
 };
+
+// PostgreSQL is primary in production.
+// SQLite kept temporarily for safety & local fallback.

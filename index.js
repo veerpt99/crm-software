@@ -1,3 +1,5 @@
+// PostgreSQL is primary in production.
+// SQLite kept temporarily for safety & local fallback.
 
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
