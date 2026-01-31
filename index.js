@@ -6,7 +6,6 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const bcrypt = require("bcrypt");
-const pg = require("./db"); // ✅ ADD THIS
 
 
 // ✅ INITIALIZE APP FIRST
