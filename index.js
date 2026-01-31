@@ -26,6 +26,26 @@ app.use(
 
 app.use(express.json());
 
+const { pg, isPostgres } = require("./db");
+
+async function initPostgres() {
+  if (!isPostgres) return;
+
+  await pg.query(`
+    CREATE TABLE IF NOT EXISTS hr (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      name TEXT,
+      role TEXT DEFAULT 'hr',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  console.log("Postgres tables ready");
+}
+
+initPostgres();
 
 
 // ================= UPLOADS FOLDER =================

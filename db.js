@@ -1,22 +1,38 @@
-const { Pool } = require("pg");
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+let sqlite = null;
+let pg = null;
+let isPostgres = false;
+
+/* ================= SQLITE ================= */
+const sqlitePath = path.join(__dirname, "crm.db");
+sqlite = new sqlite3.Database(sqlitePath, (err) => {
+  if (err) console.error("SQLite error", err);
+  else console.log("SQLite Connected");
 });
 
-// 🔥 Force connection test on startup
-(async () => {
-  try {
-    await pool.query("SELECT 1");
-    console.log("✅ PostgreSQL connected & ready");
-  } catch (err) {
-    console.error("❌ PostgreSQL connection failed:", err.message);
-  }
-})();
+/* ================= POSTGRES ================= */
+if (process.env.DATABASE_URL) {
+  const { Pool } = require("pg");
+
+  pg = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  pg.query("SELECT 1")
+    .then(() => {
+      isPostgres = true;
+      console.log("PostgreSQL connected & ready");
+    })
+    .catch((err) => {
+      console.error("PostgreSQL connection failed", err);
+    });
+}
 
 module.exports = {
-  query: (text, params) => pool.query(text, params),
+  sqlite,
+  pg,
+  isPostgres,
 };
