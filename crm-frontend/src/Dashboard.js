@@ -5,7 +5,7 @@ import api from "./api";
 function Dashboard() {
   const navigate = useNavigate();
 
-  // ✅ SAFE DEFAULT STRUCTURE
+  /* ================= DASHBOARD COUNTS ================= */
   const [data, setData] = useState({
     total: 0,
     Applied: 0,
@@ -15,36 +15,24 @@ function Dashboard() {
     Rejected: 0,
   });
 
+  /* ================= OVERDUE FOLLOWUPS ================= */
   const [overdue, setOverdue] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-
 
   useEffect(() => {
-  fetchDashboard();
-  fetchOverdue();
-  fetchNotifications();
-
-  const interval = setInterval(() => {
+    fetchDashboard();
     fetchOverdue();
-    fetchNotifications();
-  }, 5000);
 
-  return () => clearInterval(interval);
-}, []);
+    const interval = setInterval(() => {
+      fetchOverdue();
+    }, 5000);
 
-const notificationStyles = {
-  interview: { bg: "#f3f4f6", color: "#000000", icon: "📅" },
-  followup: { bg: "#fef9c3", color: "#92400e", icon: "⏳" },
-  followup_overdue: { bg: "#fee2e2", color: "#991b1b", icon: "🚨" },
-};
-
+    return () => clearInterval(interval);
+  }, []);
 
   /* ================= FETCH DASHBOARD ================= */
   const fetchDashboard = async () => {
     try {
       const res = await api.get("/dashboard/counts");
-
-      console.log("📊 DASHBOARD DATA:", res.data);
 
       setData({
         total: res.data?.total || 0,
@@ -59,7 +47,7 @@ const notificationStyles = {
     }
   };
 
-  /* ================= OVERDUE FOLLOWUPS ================= */
+  /* ================= FETCH OVERDUE ================= */
   const fetchOverdue = async () => {
     try {
       const res = await api.get("/followups-overdue");
@@ -68,15 +56,6 @@ const notificationStyles = {
       console.error("Overdue followups load failed", err);
     }
   };
-
-  const fetchNotifications = async () => {
-  try {
-    const res = await api.get("/notifications/all");
-    setNotifications(res.data || []);
-  } catch (err) {
-    console.error("Notifications load failed", err);
-  }
-};
 
   /* ================= KPI CARD ================= */
   const StatCard = ({ title, value, status, className }) => (
@@ -104,61 +83,25 @@ const notificationStyles = {
     <div>
       <h2>Dashboard Overview</h2>
 
-      {/* 🔔 OVERDUE ALERT */}
+      {/* 🚨 OVERDUE FOLLOW-UP ALERT (TOP PRIORITY) */}
       {overdue.length > 0 && (
         <div
           style={{
-            background: "#ffe5e5",
+            background: "#fee2e2",
             border: "1px solid #ef4444",
-            padding: 15,
-            marginBottom: 20,
+            padding: 16,
+            marginBottom: 24,
+            borderRadius: 10,
             cursor: "pointer",
-            borderRadius: 8,
           }}
           onClick={() => navigate("/leads")}
         >
-          🔔 <b>{overdue.length}</b> overdue follow-ups need attention!
-          <div style={{ fontSize: 12 }}>Click to view leads</div>
+          🚨 <b>{overdue.length}</b> overdue follow-ups need immediate attention
+          <div style={{ fontSize: 12, marginTop: 4 }}>
+            Click to view affected leads
+          </div>
         </div>
       )}
-
-{notifications.length > 0 && (
-  <div style={{ marginBottom: 30 }}>
-    <h3>🔔 Notifications</h3>
-
-    {notifications.map((n) => (
-      <div
-        key={`${n.type}-${n.id}`}
-        onClick={() => {
-          if (n.type === "interview") {
-            navigate("/interviews");
-          } else {
-            navigate(`/leads/${n.redirect_id}/followups`);
-          }
-        }}
-        style={{
-          background: notificationStyles[n.type]?.bg,
-          color: notificationStyles[n.type]?.color,
-          padding: 12,
-          borderRadius: 8,
-          marginBottom: 10,
-          cursor: "pointer",
-          border: "1px solid rgba(0,0,0,0.05)",
-        }}
-      >
-        <b>
-          {notificationStyles[n.type]?.icon} {n.title}
-        </b>
-
-        <div style={{ fontSize: 13 }}>{n.subtitle}</div>
-
-        <div style={{ fontSize: 12, opacity: 0.8 }}>
-          {n.status} • {n.date}
-        </div>
-      </div>
-    ))}
-  </div>
-)}
 
       {/* ================= KPI CARDS ================= */}
       <div className="dashboard-grid">

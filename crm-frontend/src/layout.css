@@ -720,33 +720,6 @@ select:focus {
   color: #7c2d12;
 }
 
-.notif-item.overdue {
-  border-left: 3px solid #ef4444 !important;
-  background: #fef2f2;
-}
-
-.notif-item.overdue:hover {
-  background: #fee2e2;
-}
-
-.notif-item.unread {
-  background: #f0f9ff;
-  border-left: 3px solid #0ea5e9;
-  font-weight: 500;
-}
-
-.notif-item.read {
-  color: #6b7280;
-}
-
-.notif-item:hover {
-  background: #f9fafb;
-}
-
-.notif-item.unread:hover {
-  background: #e0f2fe;
-}
-
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -756,4 +729,38 @@ select:focus {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ======================================================
+   NOTIFICATION TYPE COLORS (NEW LOGIC)
+   ====================================================== */
+
+/* 📅 Interview */
+.notif-interview {
+  background: #eef2ff;              /* soft indigo */
+  border-left: 4px solid #6366f1;
+}
+
+.notif-interview:hover {
+  background: #e0e7ff;
+}
+
+/* ⏳ Follow-up (due today / upcoming) */
+.notif-followup {
+  background: #fef9c3;              /* soft yellow */
+  border-left: 4px solid #f59e0b;
+}
+
+.notif-followup:hover {
+  background: #fef08a;
+}
+
+/* 🚨 Overdue follow-up */
+.notif-followup_overdue {
+  background: #fee2e2;              /* soft red */
+  border-left: 4px solid #ef4444;
+}
+
+.notif-followup_overdue:hover {
+  background: #fecaca;
 }

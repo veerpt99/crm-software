@@ -55,18 +55,24 @@ function Layout() {
   const fetchNotifications = async () => {
     try {
       const res = await api.get("/notifications/all");
-      setNotifications(res.data || []);
+
+      const priorityOrder = {
+        followup_overdue: 1,
+        followup: 2,
+        interview: 3,
+      };
+
+      const sorted = (res.data || []).sort(
+        (a, b) => priorityOrder[a.type] - priorityOrder[b.type]
+      );
+
+      setNotifications(sorted);
     } catch (err) {
       console.error("Notification fetch failed", err);
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  const markAsRead = async (id) => {
-    await api.put(`/notifications/read/${id}`);
-    fetchNotifications();
-  };
+  const notifCount = notifications.length;
 
   /* ================= CLOSE DROPDOWNS ================= */
   useEffect(() => {
@@ -117,8 +123,8 @@ function Layout() {
               }}
             >
               🔔
-              {unreadCount > 0 && (
-                <span className="notif-count">{unreadCount}</span>
+              {notifCount > 0 && (
+                <span className="notif-count">{notifCount}</span>
               )}
             </div>
 
@@ -133,14 +139,17 @@ function Layout() {
 
                 {notifications.map((n) => (
                   <div
-                    key={n.id}
-                    className={`notif-item ${
-                      n.is_read ? "read" : "unread"
-                    }`}
-                    onClick={() => markAsRead(n.id)}
+                    key={`${n.type}-${n.id}-${n.date}`}
+                    className={`notif-item notif-${n.type}`}
                   >
-                    <b>{n.title || n.type}</b>
-                    <p className="muted">{n.subtitle || n.status}</p>
+                    <b>{n.title}</b>
+                    <p className="muted">
+                      {n.status} • {n.date}
+                      {n.time ? ` at ${n.time}` : ""}
+                    </p>
+                    {n.subtitle && (
+                      <small className="muted">{n.subtitle}</small>
+                    )}
                   </div>
                 ))}
               </div>
