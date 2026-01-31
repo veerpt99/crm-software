@@ -1,3 +1,8 @@
+console.log("ENV CHECK:", {
+  DATABASE_URL: process.env.DATABASE_URL ? "FOUND" : "MISSING",
+  NODE_ENV: process.env.NODE_ENV,
+});
+
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
