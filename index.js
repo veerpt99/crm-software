@@ -1,7 +1,3 @@
-console.log("ENV CHECK:", {
-  DATABASE_URL: process.env.DATABASE_URL ? "FOUND" : "MISSING",
-  NODE_ENV: process.env.NODE_ENV,
-});
 
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
@@ -30,18 +26,6 @@ app.use(
 
 app.use(express.json());
 
-// ================= POSTGRES TEST (TEMP) =================
-app.get("/pg-test", async (req, res) => {
-  try {
-    const result = await pg.query("SELECT NOW()");
-    res.json({
-      postgres_time: result.rows[0],
-    });
-  } catch (err) {
-    console.error("Postgres test failed:", err);
-    res.status(500).json({ error: "Postgres not working" });
-  }
-});
 
 
 // ================= UPLOADS FOLDER =================
