@@ -188,6 +188,27 @@ db.serialize(() => {
     )
   `);
 
+    // ================= JOB ↔ CANDIDATES (NEW CORE TABLE) =================
+  db.run(`
+    CREATE TABLE IF NOT EXISTS job_candidates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_id INTEGER NOT NULL,
+      candidate_id INTEGER NOT NULL,
+      stage TEXT CHECK(stage IN ('shared','interviewed','hired','rejected')) DEFAULT 'shared',
+      assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(job_id, candidate_id)
+    )
+  `);
+
+  // ================= MIGRATE EXISTING CANDIDATES =================
+db.run(`
+  INSERT OR IGNORE INTO job_candidates (job_id, candidate_id, stage)
+  SELECT job_id, id, COALESCE(status, 'shared')
+  FROM candidates
+  WHERE job_id IS NOT NULL
+`);
+
+
   app.get("/debug/users", (req, res) => {
   db.all("SELECT id, username, avatar FROM hr", [], (err, rows) => {
     if (err) return res.status(500).json(err);
@@ -440,6 +461,74 @@ app.delete("/delete-job/:id", (req, res) => {
     "DELETE FROM jobs WHERE id=?",
     [req.params.id],
     () => res.json({ message: "Job deleted" })
+  );
+});
+
+// ================= JOB → CANDIDATES (MODERN CRM CORE) =================
+
+// Add candidate to a job
+app.post("/jobs/:jobId/candidates", (req, res) => {
+  const { jobId } = req.params;
+  const { candidateId } = req.body;
+
+  db.run(
+    `INSERT OR IGNORE INTO job_candidates (job_id, candidate_id)
+     VALUES (?, ?)`,
+    [jobId, candidateId],
+    (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Failed to assign candidate" });
+      }
+      res.json({ success: true });
+    }
+  );
+});
+
+
+// Get candidates for a specific job
+app.get("/jobs/:jobId/candidates", (req, res) => {
+  const { jobId } = req.params;
+
+  db.all(
+    `
+    SELECT c.*, jc.stage
+    FROM job_candidates jc
+    JOIN candidates c ON c.id = jc.candidate_id
+    WHERE jc.job_id = ?
+    ORDER BY jc.assigned_at DESC
+    `,
+    [jobId],
+    (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json([]);
+      }
+      res.json(rows || []);
+    }
+  );
+});
+
+
+// Update candidate stage for a job
+app.put("/jobs/:jobId/candidates/:candidateId", (req, res) => {
+  const { jobId, candidateId } = req.params;
+  const { stage } = req.body;
+
+  db.run(
+    `
+    UPDATE job_candidates
+    SET stage = ?
+    WHERE job_id = ? AND candidate_id = ?
+    `,
+    [stage, jobId, candidateId],
+    (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Stage update failed" });
+      }
+      res.json({ success: true });
+    }
   );
 });
 
