@@ -3,10 +3,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./Layout";
 import Dashboard from "./Dashboard";
 import Leads from "./Leads";
-import LeadDetails from "./LeadDetails"; // ✅ NEW
+import LeadDetails from "./LeadDetails";
 import FollowUps from "./FollowUps";
-import Company from "./Company";
+import Company from "./company";
+import CompanyDetails from "./CompanyDetails";
 import Jobs from "./Jobs";
+import JobDetails from "./JobDetails";
 import Candidate from "./Candidate";
 import Login from "./Login";
 import Profile from "./Profile";
@@ -17,9 +19,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* AUTH */}
         <Route path="/login" element={<Login />} />
 
+        {/* APP LAYOUT */}
         <Route element={<Layout />}>
+          {/* DASHBOARD */}
           <Route
             path="/"
             element={
@@ -29,7 +34,7 @@ function App() {
             }
           />
 
-          {/* LEADS LIST */}
+          {/* LEADS */}
           <Route
             path="/leads"
             element={
@@ -39,7 +44,6 @@ function App() {
             }
           />
 
-          {/* ✅ LEAD DETAILS */}
           <Route
             path="/leads/:id"
             element={
@@ -59,6 +63,7 @@ function App() {
             }
           />
 
+          {/* COMPANIES */}
           <Route
             path="/companies"
             element={
@@ -69,6 +74,16 @@ function App() {
           />
 
           <Route
+            path="/company/:id"
+            element={
+              <Protected>
+                <CompanyDetails />
+              </Protected>
+            }
+          />
+
+          {/* JOBS */}
+          <Route
             path="/jobs"
             element={
               <Protected>
@@ -78,6 +93,16 @@ function App() {
           />
 
           <Route
+            path="/job/:id"
+            element={
+              <Protected>
+                <JobDetails />
+              </Protected>
+            }
+          />
+
+          {/* CANDIDATES */}
+          <Route
             path="/candidates"
             element={
               <Protected>
@@ -86,6 +111,7 @@ function App() {
             }
           />
 
+          {/* INTERVIEWS */}
           <Route
             path="/interviews"
             element={
@@ -95,6 +121,7 @@ function App() {
             }
           />
 
+          {/* PROFILE */}
           <Route
             path="/profile"
             element={

@@ -442,6 +442,28 @@ app.get("/jobs", async (_, res) => {
   res.json(rows);
 });
 
+// ================= SINGLE JOB =================
+app.get("/jobs/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { rows } = await pg.query(
+      "SELECT * FROM jobs WHERE id = $1",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("Fetch single job error", err);
+    res.status(500).json({ message: "Failed to fetch job" });
+  }
+});
+
+
 app.put("/edit-job/:id", async (req, res) => {
   const {
     title,
@@ -490,6 +512,53 @@ app.delete("/delete-job/:id", async (req, res) => {
   res.json({ message: "Job deleted" });
 });
 
+// ================= COMPANY → JOBS =================
+app.get("/companies/:companyId/jobs", async (req, res) => {
+  const { companyId } = req.params;
+
+  try {
+    const { rows } = await pg.query(
+      `
+      SELECT *
+      FROM jobs
+      WHERE company_id = $1
+      ORDER BY id DESC
+      `,
+      [companyId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Fetch company jobs error", err);
+    res.status(500).json([]);
+  }
+});
+
+// ================= AVAILABLE CANDIDATES FOR JOB =================
+app.get("/jobs/:jobId/available-candidates", async (req, res) => {
+  const { jobId } = req.params;
+
+  try {
+    const { rows } = await pg.query(
+      `
+      SELECT *
+      FROM candidates
+      WHERE id NOT IN (
+        SELECT candidate_id
+        FROM job_candidates
+        WHERE job_id = $1
+      )
+      ORDER BY id DESC
+      `,
+      [jobId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Fetch available candidates error", err);
+    res.status(500).json([]);
+  }
+});
 
 // ================= JOB → CANDIDATES (MODERN CRM CORE) =================
 
@@ -538,6 +607,7 @@ app.get("/jobs/:jobId/candidates", async (req, res) => {
     res.status(500).json([]);
   }
 });
+
 
 
 // Update candidate stage for a job
