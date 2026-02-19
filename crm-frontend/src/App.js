@@ -5,7 +5,7 @@ import Dashboard from "./Dashboard";
 import Leads from "./Leads";
 import LeadDetails from "./LeadDetails";
 import FollowUps from "./FollowUps";
-import Company from "./company";
+import Company from "./Company";
 import CompanyDetails from "./CompanyDetails";
 import Jobs from "./Jobs";
 import JobDetails from "./JobDetails";
