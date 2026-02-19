@@ -89,7 +89,8 @@ function CompanyDetails() {
             key={j.id}
             className="card"
             style={{ marginTop: 12, cursor: "pointer" }}
-            onClick={() => navigate(`/jobs/${j.id}`)}
+            onClick={() => navigate(`/companies/${id}/jobs/${j.id}`)}
+
           >
             <strong>{j.title}</strong>
             <div style={{ color: "#6b7280", fontSize: 14 }}>

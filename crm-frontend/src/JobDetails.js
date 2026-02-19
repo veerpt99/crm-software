@@ -82,10 +82,20 @@ function JobDetails() {
   return (
     <div className="page">
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h2>Job Details</h2>
-        <button onClick={() => navigate(-1)}>⬅ Back</button>
-      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+  <h2>Job Details</h2>
+
+  <div style={{ display: "flex", gap: 10 }}>
+    <button onClick={() => navigate(`/jobs/${id}/candidates`)}>
+      👥 View Candidates Page
+    </button>
+
+    <button onClick={() => navigate(-1)}>
+      ⬅ Back
+    </button>
+  </div>
+</div>
+
 
       {/* JOB DETAILS */}
       <div className="card" style={{ marginTop: 16 }}>
