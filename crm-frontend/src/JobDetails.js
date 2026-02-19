@@ -51,37 +51,41 @@ function JobDetails() {
       </div>
 
       {/* JOB DETAILS */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="detail-row">
-          <span>Job Title</span>
-          <strong>{job.title}</strong>
-        </div>
+     <div className="details-card">
+  <div className="details-grid">
+    <div className="detail-item">
+      <span className="detail-label">Job Title</span>
+      <span className="detail-value">{job.title}</span>
+    </div>
 
-        <div className="detail-row">
-          <span>Experience</span>
-          <strong>{job.experience || "-"}</strong>
-        </div>
+    <div className="detail-item">
+      <span className="detail-label">Experience</span>
+      <span className="detail-value">{job.experience}</span>
+    </div>
 
-        <div className="detail-row">
-          <span>Location</span>
-          <strong>{job.location || "-"}</strong>
-        </div>
+    <div className="detail-item">
+      <span className="detail-label">Location</span>
+      <span className="detail-value">{job.location}</span>
+    </div>
 
-        <div className="detail-row">
-          <span>Salary</span>
-          <strong>{job.salary || "-"}</strong>
-        </div>
+    <div className="detail-item">
+      <span className="detail-label">Salary</span>
+      <span className="detail-value">{job.salary}</span>
+    </div>
 
-        <div className="detail-row">
-          <span>Status</span>
-          <strong>{job.status}</strong>
-        </div>
+    <div className="detail-item">
+      <span className="detail-label">Recruiter</span>
+      <span className="detail-value">{job.recruiter_name}</span>
+    </div>
 
-        <div className="detail-row">
-          <span>Recruiter</span>
-          <strong>{job.recruiter_name || "-"}</strong>
-        </div>
-      </div>
+    <div className="detail-item">
+      <span className="detail-label">Status</span>
+      <span className={`status-badge ${job.status?.toLowerCase()}`}>
+        {job.status}
+      </span>
+    </div>
+  </div>
+</div>
 
       {/* ASSIGNED CANDIDATES */}
       <div style={{ marginTop: 30 }}>

@@ -47,32 +47,42 @@ function CompanyDetails() {
       </div>
 
       {/* COMPANY DETAILS (LeadDetails style) */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="detail-row">
-          <span>Company Name</span>
-          <strong>{company.name}</strong>
-        </div>
-        <div className="detail-row">
-          <span>HR Name</span>
-          <strong>{company.hr_name || "-"}</strong>
-        </div>
-        <div className="detail-row">
-          <span>Phone</span>
-          <strong>{company.phone || "-"}</strong>
-        </div>
-        <div className="detail-row">
-          <span>Email</span>
-          <strong>{company.email || "-"}</strong>
-        </div>
-        <div className="detail-row">
-          <span>Industry</span>
-          <strong>{company.industry || "-"}</strong>
-        </div>
-        <div className="detail-row">
-          <span>Status</span>
-          <strong>{company.status}</strong>
-        </div>
-      </div>
+      <div className="details-card">
+  <div className="details-grid">
+    <div className="detail-item">
+      <span className="detail-label">Company Name</span>
+      <span className="detail-value">{company.name}</span>
+    </div>
+
+    <div className="detail-item">
+      <span className="detail-label">HR Name</span>
+      <span className="detail-value">{company.hr_name}</span>
+    </div>
+
+    <div className="detail-item">
+      <span className="detail-label">Phone</span>
+      <span className="detail-value">{company.phone}</span>
+    </div>
+
+    <div className="detail-item">
+      <span className="detail-label">Email</span>
+      <span className="detail-value">{company.email}</span>
+    </div>
+
+    <div className="detail-item">
+      <span className="detail-label">Industry</span>
+      <span className="detail-value">{company.industry}</span>
+    </div>
+
+    <div className="detail-item">
+      <span className="detail-label">Status</span>
+      <span className={`status-badge ${company.status?.toLowerCase()}`}>
+        {company.status}
+      </span>
+    </div>
+  </div>
+</div>
+
 
       {/* JOBS */}
       <div style={{ marginTop: 30 }}>
