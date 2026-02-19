@@ -639,11 +639,13 @@ app.put("/jobs/:jobId/candidates/:candidateId", async (req, res) => {
 
 
 // ================= CANDIDATES =================
+// ================= CANDIDATES =================
 app.post("/add-candidate", upload.single("cv"), async (req, res) => {
-  const { name, email, phone, position, status } = req.body;
+  const { name, email, phone, position, status, job_id } = req.body;
   const cv = req.file ? req.file.filename : null;
 
   try {
+    // 1️⃣ Insert into candidates
     const { rows } = await pg.query(
       `
       INSERT INTO candidates (name, email, phone, position, status, cv)
@@ -653,12 +655,27 @@ app.post("/add-candidate", upload.single("cv"), async (req, res) => {
       [name, email, phone, position, status, cv]
     );
 
-    res.json({ message: "Candidate added", id: rows[0].id });
+    const candidateId = rows[0].id;
+
+    // 2️⃣ If job selected → auto assign
+    if (job_id) {
+      await pg.query(
+        `
+        INSERT INTO job_candidates (job_id, candidate_id)
+        VALUES ($1,$2)
+        ON CONFLICT DO NOTHING
+        `,
+        [job_id, candidateId]
+      );
+    }
+
+    res.json({ message: "Candidate added & assigned", id: candidateId });
   } catch (err) {
     console.error("Add candidate error", err);
     res.status(500).json({ message: "Candidate add failed" });
   }
 });
+
 
 app.get("/candidates", async (_, res) => {
   const { rows } = await pg.query("SELECT * FROM candidates");
