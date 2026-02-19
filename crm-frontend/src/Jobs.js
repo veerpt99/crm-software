@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "./api";
 
 function Jobs() {
-  const { companyId } = useParams(); // 👈 NEW
+  const { companyId } = useParams();
 
   const [jobs, setJobs] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -22,45 +22,48 @@ function Jobs() {
     recruiter_name: "",
   });
 
-  /* ================= FETCH ================= */
+  /* ================= FETCH COMPANIES ================= */
 
   useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const res = await api.get("/companies");
+        setCompanies(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
     fetchCompanies();
   }, []);
 
+  /* ================= FETCH JOBS ================= */
+
+  const fetchJobs = useCallback(async () => {
+    try {
+      let res;
+
+      if (companyId) {
+        res = await api.get(`/companies/${companyId}/jobs`);
+      } else {
+        res = await api.get("/jobs");
+      }
+
+      setJobs(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [companyId]);
+
   useEffect(() => {
     fetchJobs();
-  }, [companyId]); // 👈 refetch if route changes
-
-  const fetchJobs = async () => {
-  try {
-    let res;
-
-    if (companyId) {
-      // ✅ Use your existing backend route
-      res = await api.get(`/companies/${companyId}/jobs`);
-    } else {
-      res = await api.get("/jobs");
-    }
-
-    setJobs(Array.isArray(res.data) ? res.data : []);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-
-  const fetchCompanies = async () => {
-    const res = await api.get("/companies");
-    setCompanies(Array.isArray(res.data) ? res.data : []);
-  };
+  }, [fetchJobs]);
 
   /* ================= FORM ================= */
 
   const openAddModal = () => {
     resetForm();
 
-    // 👇 Auto-set company if inside company route
     if (companyId) {
       setForm((prev) => ({
         ...prev,
@@ -97,15 +100,30 @@ function Jobs() {
       return;
     }
 
-    if (editId) {
-      await api.put(`/edit-job/${editId}`, form);
-    } else {
-      await api.post("/add-job", form);
-    }
+    try {
+      if (editId) {
+        await api.put(`/edit-job/${editId}`, form);
+      } else {
+        await api.post("/add-job", form);
+      }
 
-    fetchJobs();
-    setModalOpen(false);
-    resetForm();
+      await fetchJobs();
+      setModalOpen(false);
+      resetForm();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteJob = async (id) => {
+    if (!window.confirm("Delete this job?")) return;
+
+    try {
+      await api.delete(`/delete-job/${id}`);
+      await fetchJobs();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const resetForm = () => {
@@ -119,12 +137,6 @@ function Jobs() {
       status: "Open",
       recruiter_name: "",
     });
-  };
-
-  const deleteJob = async (id) => {
-    if (!window.confirm("Delete this job?")) return;
-    await api.delete(`/delete-job/${id}`);
-    fetchJobs();
   };
 
   const companyName = (id) =>
@@ -152,7 +164,6 @@ function Jobs() {
       </div>
 
       <div
-        className="card-list"
         style={{ display: "flex", flexDirection: "column", gap: "16px" }}
       >
         {jobs.map((j) => {
@@ -161,7 +172,6 @@ function Jobs() {
           return (
             <div
               key={j.id}
-              className={`entity-card ${isOpen ? "open" : ""}`}
               onClick={() => setOpenId(isOpen ? null : j.id)}
               style={{
                 border: "2px solid #e5e7eb",
@@ -170,8 +180,6 @@ function Jobs() {
                 backgroundColor: "#ffffff",
                 cursor: "pointer",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
-                transition: "all 0.3s ease",
-                width: "100%",
               }}
             >
               <div
@@ -199,11 +207,12 @@ function Jobs() {
                   <p>👤 {j.recruiter_name || "-"}</p>
 
                   <div style={{ marginTop: 16 }}>
-                    <button onClick={() => openEditModal(j)}>Edit</button>
+                    <button onClick={() => openEditModal(j)}>
+                      Edit
+                    </button>
                     <button
-                      className="danger"
-                      onClick={() => deleteJob(j.id)}
                       style={{ marginLeft: 8 }}
+                      onClick={() => deleteJob(j.id)}
                     >
                       Delete
                     </button>
@@ -228,10 +237,9 @@ function Jobs() {
             zIndex: 1000,
           }}
         >
-          <div className="card" style={{ width: 420 }}>
+          <div style={{ width: 420, background: "#fff", padding: 20 }}>
             <h3>{editId ? "Edit Job" : "Add Job"}</h3>
 
-            {/* Hide company dropdown if inside company route */}
             {!companyId && (
               <select
                 name="company_id"
@@ -247,57 +255,24 @@ function Jobs() {
               </select>
             )}
 
-            <input
-              name="title"
-              placeholder="Job Title"
-              value={form.title}
-              onChange={handleChange}
-            />
+            <input name="title" placeholder="Job Title" value={form.title} onChange={handleChange} />
+            <input name="experience" placeholder="Experience" value={form.experience} onChange={handleChange} />
+            <input name="salary" placeholder="Salary" value={form.salary} onChange={handleChange} />
+            <input name="location" placeholder="Location" value={form.location} onChange={handleChange} />
 
-            <input
-              name="experience"
-              placeholder="Experience"
-              value={form.experience}
-              onChange={handleChange}
-            />
-
-            <input
-              name="salary"
-              placeholder="Salary"
-              value={form.salary}
-              onChange={handleChange}
-            />
-
-            <input
-              name="location"
-              placeholder="Location"
-              value={form.location}
-              onChange={handleChange}
-            />
-
-            <select
-              name="status"
-              value={form.status}
-              onChange={handleChange}
-            >
+            <select name="status" value={form.status} onChange={handleChange}>
               <option>Open</option>
               <option>Closed</option>
               <option>On Hold</option>
             </select>
 
-            <input
-              name="recruiter_name"
-              placeholder="Recruiter Name"
-              value={form.recruiter_name}
-              onChange={handleChange}
-            />
+            <input name="recruiter_name" placeholder="Recruiter Name" value={form.recruiter_name} onChange={handleChange} />
 
             <div style={{ marginTop: 12 }}>
               <button onClick={submitJob}>
                 {editId ? "Update Job" : "Add Job"}
               </button>
               <button
-                className="danger"
                 style={{ marginLeft: 8 }}
                 onClick={() => {
                   setModalOpen(false);
