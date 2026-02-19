@@ -78,30 +78,32 @@ async function initPostgres() {
       );
     `);
 
+
     // ===== CANDIDATES =====
+   await pg.query(`
+  CREATE TABLE IF NOT EXISTS candidates (
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    email TEXT,
+    phone TEXT,
+    position TEXT,
+    status TEXT,
+    cv TEXT,
+    company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL,
+    job_id INTEGER REFERENCES jobs(id) ON DELETE SET NULL
+  );
+`);
+// 🔥 Ensure columns exist
     await pg.query(`
-      CREATE TABLE IF NOT EXISTS candidates (
-        id SERIAL PRIMARY KEY,
-        name TEXT,
-        email TEXT,
-        phone TEXT,
-        position TEXT,
-        status TEXT,
-        cv TEXT
-      );
+      ALTER TABLE candidates
+      ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL;
     `);
 
-    // ===== JOB ↔ CANDIDATES (CORE CRM TABLE) =====
     await pg.query(`
-      CREATE TABLE IF NOT EXISTS job_candidates (
-        id SERIAL PRIMARY KEY,
-        job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
-        candidate_id INTEGER REFERENCES candidates(id) ON DELETE CASCADE,
-        stage TEXT DEFAULT 'shared',
-        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(job_id, candidate_id)
-      );
+      ALTER TABLE candidates
+      ADD COLUMN IF NOT EXISTS job_id INTEGER REFERENCES jobs(id) ON DELETE SET NULL;
     `);
+
 
     // ===== INTERVIEWS =====
     await pg.query(`
@@ -407,43 +409,31 @@ app.delete("/delete-company/:id", async (req, res) => {
 
 // ================= JOBS =================
 app.post("/add-job", async (req, res) => {
-  const {
-    company_id,
-    title,
-    experience,
-    salary,
-    location,
-    status,
-    recruiter_name,
-  } = req.body;
+  const { company_id, title, experience, salary, location, status, recruiter_name } = req.body;
 
-  try {
-    await pg.query(
-      `
-      INSERT INTO jobs
-      (company_id, title, experience, salary, location, status, recruiter_name)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      `,
-      [
-        company_id,
-        title,
-        experience,
-        salary,
-        location,
-        status,
-        recruiter_name || "",
-      ]
-    );
+  await pg.query(
+    `INSERT INTO jobs
+     (company_id, title, experience, salary, location, status, recruiter_name)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [company_id, title, experience, salary, location, status, recruiter_name]
+  );
 
-    res.json({ message: "Job added" });
-  } catch (err) {
-    console.error("Add job error:", err);
-    res.status(500).json({ message: "Error adding job" });
-  }
+  res.json({ message: "Job added" });
 });
 
 app.get("/jobs", async (_, res) => {
   const { rows } = await pg.query("SELECT * FROM jobs");
+  res.json(rows);
+});
+
+app.get("/companies/:companyId/jobs", async (req, res) => {
+  const { companyId } = req.params;
+
+  const { rows } = await pg.query(
+    "SELECT * FROM jobs WHERE company_id = $1 ORDER BY id DESC",
+    [companyId]
+  );
+
   res.json(rows);
 });
 
@@ -539,142 +529,49 @@ app.get("/companies/:companyId/jobs", async (req, res) => {
   }
 });
 
-// ================= AVAILABLE CANDIDATES FOR JOB =================
-app.get("/jobs/:jobId/available-candidates", async (req, res) => {
-  const { jobId } = req.params;
-
-  try {
-    const { rows } = await pg.query(
-      `
-      SELECT *
-      FROM candidates
-      WHERE id NOT IN (
-        SELECT candidate_id
-        FROM job_candidates
-        WHERE job_id = $1
-      )
-      ORDER BY id DESC
-      `,
-      [jobId]
-    );
-
-    res.json(rows);
-  } catch (err) {
-    console.error("Fetch available candidates error", err);
-    res.status(500).json([]);
-  }
-});
-
-// ================= JOB → CANDIDATES (MODERN CRM CORE) =================
-
-// Add candidate to a job
-app.post("/jobs/:jobId/candidates", async (req, res) => {
-  const { jobId } = req.params;
-  const { candidateId } = req.body;
-
-  try {
-    await pg.query(
-      `
-      INSERT INTO job_candidates (job_id, candidate_id)
-      VALUES ($1,$2)
-      ON CONFLICT DO NOTHING
-      `,
-      [jobId, candidateId]
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Assign candidate error", err);
-    res.status(500).json({ message: "Failed to assign candidate" });
-  }
-});
-
-
-// Get candidates for a specific job
-app.get("/jobs/:jobId/candidates", async (req, res) => {
-  const { jobId } = req.params;
-
-  try {
-    const { rows } = await pg.query(
-      `
-      SELECT c.*, jc.stage
-      FROM job_candidates jc
-      JOIN candidates c ON c.id = jc.candidate_id
-      WHERE jc.job_id = $1
-      ORDER BY jc.assigned_at DESC
-      `,
-      [jobId]
-    );
-
-    res.json(rows);
-  } catch (err) {
-    console.error("Fetch job candidates error", err);
-    res.status(500).json([]);
-  }
-});
-
-
-
-// Update candidate stage for a job
-app.put("/jobs/:jobId/candidates/:candidateId", async (req, res) => {
-  const { jobId, candidateId } = req.params;
-  const { stage } = req.body;
-
-  try {
-    await pg.query(
-      `
-      UPDATE job_candidates
-      SET stage = $1
-      WHERE job_id = $2 AND candidate_id = $3
-      `,
-      [stage, jobId, candidateId]
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Stage update error", err);
-    res.status(500).json({ message: "Stage update failed" });
-  }
-});
 
 
 // ================= CANDIDATES =================
 // ================= CANDIDATES =================
 app.post("/add-candidate", upload.single("cv"), async (req, res) => {
-  const { name, email, phone, position, status, job_id } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    position,
+    status,
+    company_id,
+    job_id,
+  } = req.body;
+
   const cv = req.file ? req.file.filename : null;
 
   try {
-    // 1️⃣ Insert into candidates
-    const { rows } = await pg.query(
+    await pg.query(
       `
-      INSERT INTO candidates (name, email, phone, position, status, cv)
-      VALUES ($1,$2,$3,$4,$5,$6)
-      RETURNING id
+      INSERT INTO candidates
+      (name, email, phone, position, status, cv, company_id, job_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       `,
-      [name, email, phone, position, status, cv]
+      [
+        name,
+        email,
+        phone,
+        position,
+        status,
+        cv,
+        company_id || null,
+        job_id || null,
+      ]
     );
 
-    const candidateId = rows[0].id;
-
-    // 2️⃣ If job selected → auto assign
-    if (job_id) {
-      await pg.query(
-        `
-        INSERT INTO job_candidates (job_id, candidate_id)
-        VALUES ($1,$2)
-        ON CONFLICT DO NOTHING
-        `,
-        [job_id, candidateId]
-      );
-    }
-
-    res.json({ message: "Candidate added & assigned", id: candidateId });
+    res.json({ message: "Candidate added successfully" });
   } catch (err) {
     console.error("Add candidate error", err);
     res.status(500).json({ message: "Candidate add failed" });
   }
 });
+
 
 
 app.get("/candidates", async (_, res) => {
@@ -694,6 +591,23 @@ app.put("/update-candidate-status/:id", async (req, res) => {
 app.delete("/delete-candidate/:id", async (req, res) => {
   await pg.query("DELETE FROM candidates WHERE id=$1", [req.params.id]);
   res.json({ message: "Candidate deleted" });
+});
+
+// ================= JOB → CANDIDATES (SIMPLE) =================
+app.get("/jobs/:jobId/candidates", async (req, res) => {
+  const { jobId } = req.params;
+
+  try {
+    const { rows } = await pg.query(
+      "SELECT * FROM candidates WHERE job_id = $1 ORDER BY id DESC",
+      [jobId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Fetch job candidates error", err);
+    res.status(500).json([]);
+  }
 });
 
 
@@ -762,12 +676,12 @@ app.get("/interviews", async (_, res) => {
     SELECT i.*, c.name AS candidate, j.title AS job_title
     FROM interviews i
     LEFT JOIN candidates c ON i.candidate_id = c.id
-    LEFT JOIN job_candidates jc ON jc.candidate_id = c.id
-    LEFT JOIN jobs j ON jc.job_id = j.id
+    LEFT JOIN jobs j ON c.job_id = j.id
   `);
 
   res.json(rows);
 });
+
 
 app.delete("/delete-interview/:id", async (req, res) => {
   await pg.query("DELETE FROM interviews WHERE id=$1", [req.params.id]);
